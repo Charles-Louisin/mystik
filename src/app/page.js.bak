@@ -153,12 +153,12 @@ export default function Home() {
                 Recevez des messages anonymes et partagez votre lien unique.
               </p>
               
-              {/* <p className="text-sm text-gray-light mb-4">
+              <p className="text-sm text-gray-light mb-4">
                 Votre lien de partage aura ce format: <br/>
                 <span className="font-mono bg-gray-800 px-2 py-1 rounded">
-                  {typeof window !== 'undefined' ? window.location.origin : ''}/votre_nom
+                  {window.location.origin}/@votre_nom
                 </span>
-              </p> */}
+              </p>
 
               <Link href="/register" className="w-full">
                 <AnimatedButton fullWidth>
@@ -345,6 +345,10 @@ export default function Home() {
                   </motion.p>
                 ))}
               </div>
+              
+              <p className="text-sm text-gray-light">
+                Votre lien unique sera: {window.location.origin}/@votre_nom
+              </p>
               
               <AnimatedButton
                 onClick={closeModal}

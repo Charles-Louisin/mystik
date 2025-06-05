@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Mystik - Application de messagerie anonyme
 
-## Getting Started
+Mystik est une application de messagerie anonyme qui permet aux utilisateurs de recevoir des messages anonymes et de découvrir qui se cache derrière ces messages de manière ludique.
 
-First, run the development server:
+![Logo Mystik](public/logo.svg)
+
+## Fonctionnalités
+
+- Création de compte avec numéro de téléphone
+- Lien unique personnalisé pour recevoir des messages anonymes
+- Envoi de messages anonymes avec filtres émotionnels
+- Indices et devinettes pour deviner l'identité de l'expéditeur
+- Profil émotionnel basé sur les messages reçus
+- "Hall of Fame" pour partager publiquement les meilleurs messages
+- Système de clés pour révéler l'identité des expéditeurs
+
+## Technologies utilisées
+
+- **Frontend** : Next.js, React, TailwindCSS, Framer Motion
+- **Backend** : Express.js, MongoDB avec Mongoose
+- **Authentification** : JWT
+- **Autres** : Axios, React Icons, React Hot Toast
+
+## Installation
+
+1. Clonez ce dépôt :
+   ```bash
+   git clone https://github.com/yourusername/mystik.git
+   cd mystik
+   ```
+
+2. Installez les dépendances :
+   ```bash
+   npm install
+   ```
+
+3. Configuration des variables d'environnement :
+   - Créez un fichier `.env` dans le dossier backend :
+     ```
+     PORT=5000
+     MONGODB_URI=mongodb://localhost:27017/mystik
+     JWT_SECRET=votre_secret_jwt_tres_securise
+     NODE_ENV=development
+     ```
+
+4. Démarrez MongoDB localement ou utilisez MongoDB Atlas.
+
+## Démarrage
+
+Pour démarrer le projet en mode développement (frontend + backend) :
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Pour démarrer uniquement le frontend :
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+```bash
+npm run dev:frontend
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Pour démarrer uniquement le backend :
 
-## Learn More
+```bash
+npm run dev:backend
+```
 
-To learn more about Next.js, take a look at the following resources:
+Le frontend sera accessible à l'adresse : [http://localhost:3000](http://localhost:3000)
+L'API backend sera accessible à l'adresse : [http://localhost:5000](http://localhost:5000)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Déploiement
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Frontend (Next.js)
 
-## Deploy on Vercel
+1. Construisez l'application :
+   ```bash
+   npm run build
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. Démarrez le serveur de production :
+   ```bash
+   npm start
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Backend
+
+Pour démarrer le serveur backend en production :
+
+```bash
+npm run start:backend
+```
+
+## Structure du projet
+
+```
+mystik/
+├── backend/                # API Express.js
+│   ├── models/             # Modèles Mongoose
+│   ├── routes/             # Routes API
+│   ├── middleware/         # Middleware (auth, etc.)
+│   └── server.js           # Point d'entrée du serveur
+├── public/                 # Fichiers statiques
+├── src/                    # Code source frontend
+│   └── app/                # Application Next.js
+└── ...
+```
+
+## Auteur
+
+Charles - Projet d'Internship

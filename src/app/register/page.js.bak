@@ -1,0 +1,364 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { FaPhone, FaLock, FaArrowLeft, FaUser } from "react-icons/fa";
+import toast from "react-hot-toast";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+
+export default function Register() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    username: "",
+    phoneNumber: "",
+    password: "",
+    confirmPassword: ""
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [step, setStep] = useState(1);
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    // Définir l'origine lorsque le composant est monté côté client
+    setOrigin(window.location.origin);
+  }, []);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const checkPhoneNumber = async () => {
+    const phoneRegex = /^\+?[0-9]{10,15}$/;
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      toast.error("Numéro de téléphone invalide");
+      return false;
+    }
+
+    setIsCheckingPhone(true);
+    
+    try {
+      // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      const { data } = await axios.post(`${apiBaseUrl}/api/auth/check-phone`, {
+        phoneNumber: formData.phoneNumber
+      });
+      
+      if (!data.available) {
+        toast.error(data.message || "Ce numéro de téléphone est déjà utilisé");
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Erreur lors de la vérification du téléphone:", error);
+      toast.error("Erreur lors de la vérification du numéro de téléphone");
+      return false;
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+
+  const checkUsername = async () => {
+    if (formData.username.length < 3) {
+      toast.error("Le nom d'utilisateur doit contenir au moins 3 caractères");
+      return false;
+    }
+
+    setIsCheckingUsername(true);
+    
+    try {
+      // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      const { data } = await axios.post(`${apiBaseUrl}/api/auth/check-username`, {
+        username: formData.username
+      });
+      
+      if (!data.available) {
+        toast.error(data.message || "Ce nom d'utilisateur est déjà pris");
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Erreur lors de la vérification du nom d'utilisateur:", error);
+      toast.error("Erreur lors de la vérification du nom d'utilisateur");
+      return false;
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  const validateStep1 = async () => {
+    return await checkPhoneNumber();
+  };
+
+  const validateStep2 = async () => {
+    return await checkUsername();
+  };
+
+  const validateStep3 = () => {
+    if (formData.password.length < 6) {
+      toast.error("Le mot de passe doit contenir au moins 6 caractères");
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Les mots de passe ne correspondent pas");
+      return false;
+    }
+    return true;
+  };
+
+  const nextStep = async () => {
+    if (step === 1) {
+      const isPhoneValid = await validateStep1();
+      if (isPhoneValid) {
+        setStep(2);
+      }
+    } else if (step === 2) {
+      const isUsernameValid = await validateStep2();
+      if (isUsernameValid) {
+        setStep(3);
+      }
+    }
+  };
+
+  const prevStep = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateStep3()) {
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      // Créer le compte
+      const response = await axios.post(`${apiBaseUrl}/api/auth/register`, {
+        username: formData.username,
+        phoneNumber: formData.phoneNumber,
+        password: formData.password
+      });
+      
+      // Enregistrer le token dans localStorage
+      localStorage.setItem("token", response.data.token);
+      
+      toast.success("Compte créé avec succès!");
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Erreur d'inscription:", error);
+      const errorMessage = error.response?.data?.msg || "Erreur lors de l'inscription";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <main className="flex-1 flex items-center justify-center p-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="card p-8 w-full max-w-md"
+        >
+          <div className="flex items-center justify-center mb-8">
+            <Link href="/" className="absolute left-4 top-4 text-gray-light hover:text-white">
+              <FaArrowLeft />
+            </Link>
+            <Image 
+              src="/logo.svg" 
+              alt="Mystik Logo" 
+              width={80} 
+              height={80}
+              className="object-contain"
+            />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-center mb-8">
+            {step === 1 && "Entrez votre numéro de téléphone"}
+            {step === 2 && "Choisissez votre nom d'utilisateur"}
+            {step === 3 && "Créez votre mot de passe"}
+          </h1>
+
+          <form onSubmit={handleSubmit}>
+            {step === 1 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-4"
+              >
+                <div className="relative">
+                  <FaPhone className="absolute top-3 left-3 text-gray-light" />
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    placeholder="+33 6 12 34 56 78"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    className="input w-full pl-10"
+                    autoFocus
+                  />
+                </div>
+                <p className="text-sm text-gray-light">
+                  Nous utiliserons ce numéro pour sécuriser votre compte.
+                </p>
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={isCheckingPhone}
+                  className="btn-primary w-full mt-6"
+                >
+                  {isCheckingPhone ? (
+                    <>
+                      <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-white animate-spin mr-2"></div>
+                      Vérification...
+                    </>
+                  ) : (
+                    "Continuer"
+                  )}
+                </button>
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-4"
+              >
+                <div className="relative">
+                  <FaUser className="absolute top-3 left-3 text-gray-light" />
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Nom d'utilisateur"
+                    value={formData.username}
+                    onChange={handleChange}
+                    className="input w-full pl-10"
+                    autoFocus
+                  />
+                </div>
+                <p className="text-sm text-gray-light">
+                  Choisissez un nom d'utilisateur unique qui sera visible dans votre lien de partage:
+                  <span className="block mt-1 font-mono bg-gray-800 px-2 py-1 rounded text-xs">
+                    {origin}/@{formData.username || "username"}
+                  </span>
+                </p>
+                <div className="flex space-x-4 mt-6">
+                  <button
+                    type="button"
+                    onClick={prevStep}
+                    className="btn-primary bg-gray-800 hover:bg-gray-700 w-1/2"
+                  >
+                    Retour
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nextStep}
+                    disabled={isCheckingUsername}
+                    className="btn-primary w-1/2"
+                  >
+                    {isCheckingUsername ? (
+                      <>
+                        <div className="w-4 h-4 rounded-full border-2 border-t-transparent border-white animate-spin mr-2"></div>
+                        Vérification...
+                      </>
+                    ) : (
+                      "Continuer"
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-4"
+              >
+                <div className="relative">
+                  <FaLock className="absolute top-3 left-3 text-gray-light" />
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Mot de passe"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="input w-full pl-10"
+                    autoFocus
+                  />
+                </div>
+                <div className="relative">
+                  <FaLock className="absolute top-3 left-3 text-gray-light" />
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    placeholder="Confirmer le mot de passe"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="input w-full pl-10"
+                  />
+                </div>
+                <div className="flex space-x-4 mt-6">
+                  <button
+                    type="button"
+                    onClick={prevStep}
+                    className="btn-primary bg-gray-800 hover:bg-gray-700 w-1/2"
+                  >
+                    Retour
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="btn-primary w-1/2"
+                  >
+                    {isLoading ? "Création..." : "Créer mon compte"}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </form>
+
+          <div className="mt-8 text-center">
+            <p className="text-gray-light">
+              Vous avez déjà un compte?{" "}
+              <Link href="/login" className="text-primary hover:underline">
+                Connectez-vous
+              </Link>
+            </p>
+          </div>
+        </motion.div>
+      </main>
+    </div>
+  );
+}
