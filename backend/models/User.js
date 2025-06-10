@@ -50,6 +50,44 @@ const UserSchema = new mongoose.Schema({
     traits: [String],
     lastUpdated: Date
   },
+  publicMessages: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message'
+  }],
+  achievements: [{
+    type: {
+      type: String,
+      enum: ['referral', 'share', 'ad_view', 'login_streak']
+    },
+    date: {
+      type: Date,
+      default: Date.now
+    },
+    details: mongoose.Schema.Types.Mixed
+  }],
+  favoriteMessages: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message'
+  }],
+  customMasks: [{
+    name: String,
+    imageUrl: String,
+    isPremium: {
+      type: Boolean,
+      default: false
+    },
+    active: {
+      type: Boolean,
+      default: false
+    }
+  }],
+  localEmotionalRadar: {
+    enabled: {
+      type: Boolean,
+      default: true
+    },
+    lastUpdated: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now

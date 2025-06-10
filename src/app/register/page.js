@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { FaPhone, FaLock, FaArrowLeft, FaUser } from "react-icons/fa";
+import { FaPhone, FaLock, FaArrowLeft, FaUser, FaCheck, FaTimes, FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -13,15 +13,19 @@ export default function Register() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     username: "",
-    phoneNumber: "",
+    phone: "",
     password: "",
     confirmPassword: ""
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingPhone, setIsCheckingPhone] = useState(false);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [phoneAvailable, setPhoneAvailable] = useState(null);
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [step, setStep] = useState(1);
   const [origin, setOrigin] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     // Définir l'origine lorsque le composant est monté côté client
@@ -29,20 +33,29 @@ export default function Register() {
   }, []);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+    
+    // Vérifier la disponibilité du nom d'utilisateur
+    if (name === 'username' && value.trim().length >= 3) {
+      checkUsernameAvailability(value);
+    }
+    
+    // Vérifier la disponibilité du numéro de téléphone
+    if (name === 'phone' && value.trim().length >= 9) {
+      checkPhoneAvailability(value);
+    }
   };
 
-  const checkPhoneNumber = async () => {
-    const phoneRegex = /^\+?[0-9]{10,15}$/;
-    if (!phoneRegex.test(formData.phoneNumber)) {
-      toast.error("Numéro de téléphone invalide");
-      return false;
-    }
-
+  const checkPhoneAvailability = async (phone) => {
+    if (phone.trim().length < 9) return;
+    
     setIsCheckingPhone(true);
+    setPhoneAvailable(null);
     
     try {
       // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
@@ -50,32 +63,34 @@ export default function Register() {
         ? 'http://localhost:5000' 
         : window.location.origin;
       
+      // Formatage du numéro avec +237
+      const formattedPhone = `+237${phone}`;
+      
       const { data } = await axios.post(`${apiBaseUrl}/api/auth/check-phone`, {
-        phoneNumber: formData.phoneNumber
+        phone: formattedPhone
       });
       
+      setPhoneAvailable(data.available);
       if (!data.available) {
         toast.error(data.message || "Ce numéro de téléphone est déjà utilisé");
-        return false;
       }
       
-      return true;
+      return data.available;
     } catch (error) {
       console.error("Erreur lors de la vérification du téléphone:", error);
       toast.error("Erreur lors de la vérification du numéro de téléphone");
+      setPhoneAvailable(false);
       return false;
     } finally {
       setIsCheckingPhone(false);
     }
   };
 
-  const checkUsername = async () => {
-    if (formData.username.length < 3) {
-      toast.error("Le nom d'utilisateur doit contenir au moins 3 caractères");
-      return false;
-    }
-
+  const checkUsernameAvailability = async (username) => {
+    if (username.trim().length < 3) return;
+    
     setIsCheckingUsername(true);
+    setUsernameAvailable(null);
     
     try {
       // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
@@ -84,18 +99,19 @@ export default function Register() {
         : window.location.origin;
       
       const { data } = await axios.post(`${apiBaseUrl}/api/auth/check-username`, {
-        username: formData.username
+        username: username
       });
       
+      setUsernameAvailable(data.available);
       if (!data.available) {
         toast.error(data.message || "Ce nom d'utilisateur est déjà pris");
-        return false;
       }
       
-      return true;
+      return data.available;
     } catch (error) {
       console.error("Erreur lors de la vérification du nom d'utilisateur:", error);
       toast.error("Erreur lors de la vérification du nom d'utilisateur");
+      setUsernameAvailable(false);
       return false;
     } finally {
       setIsCheckingUsername(false);
@@ -103,11 +119,22 @@ export default function Register() {
   };
 
   const validateStep1 = async () => {
-    return await checkPhoneNumber();
+    const phoneRegex = /^\d{9}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error("Veuillez entrer un numéro de téléphone valide (9 chiffres)");
+      return false;
+    }
+    
+    return await checkPhoneAvailability(formData.phone);
   };
 
   const validateStep2 = async () => {
-    return await checkUsername();
+    if (formData.username.length < 3) {
+      toast.error("Le nom d'utilisateur doit contenir au moins 3 caractères");
+      return false;
+    }
+    
+    return await checkUsernameAvailability(formData.username);
   };
 
   const validateStep3 = () => {
@@ -157,10 +184,13 @@ export default function Register() {
         ? 'http://localhost:5000' 
         : window.location.origin;
       
+      // Formatage du numéro avec +237
+      const formattedPhone = `+237${formData.phone}`;
+      
       // Créer le compte
       const response = await axios.post(`${apiBaseUrl}/api/auth/register`, {
         username: formData.username,
-        phoneNumber: formData.phoneNumber,
+        phone: formattedPhone,
         password: formData.password
       });
       
@@ -214,17 +244,53 @@ export default function Register() {
                 exit={{ opacity: 0 }}
                 className="space-y-4"
               >
-                <div className="relative">
-                  <FaPhone className="absolute top-3 left-3 text-gray-light" />
-                  <input
-                    type="tel"
-                    name="phoneNumber"
-                    placeholder="+33 6 12 34 56 78"
-                    value={formData.phoneNumber}
-                    onChange={handleChange}
-                    className="input w-full pl-10"
-                    autoFocus
-                  />
+                <div>
+                  <label className="block text-gray-light mb-2">
+                    Numéro de téléphone
+                  </label>
+                  <div className="flex">
+                    <div className="bg-gray-800 flex items-center justify-center px-3 rounded-l-lg border-r border-gray-700">
+                      <span className="text-gray-400">+237</span>
+                    </div>
+                    <div className="relative flex-1">
+                      <FaPhone className="absolute top-3 left-3 text-gray-light" />
+                      <input
+                        type="tel"
+                        name="phone"
+                        placeholder="612345678"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className={`input rounded-l-none w-full pl-10 ${
+                          phoneAvailable === true 
+                            ? 'border-green-500' 
+                            : phoneAvailable === false 
+                              ? 'border-red-500' 
+                              : ''
+                        }`}
+                        maxLength={9}
+                        autoFocus
+                        required
+                      />
+                      {isCheckingPhone && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                        </div>
+                      )}
+                      {!isCheckingPhone && phoneAvailable === true && formData.phone.trim() !== '' && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500">
+                          <FaCheck />
+                        </div>
+                      )}
+                      {!isCheckingPhone && phoneAvailable === false && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500">
+                          <FaTimes />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {!isCheckingPhone && phoneAvailable === false && (
+                    <p className="text-red-400 text-xs mt-1">Ce numéro de téléphone est déjà utilisé</p>
+                  )}
                 </div>
                 <p className="text-sm text-gray-light">
                   Nous utiliserons ce numéro pour sécuriser votre compte.
@@ -232,7 +298,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={nextStep}
-                  disabled={isCheckingPhone}
+                  disabled={isCheckingPhone || phoneAvailable === false}
                   className="btn-primary w-full mt-6"
                 >
                   {isCheckingPhone ? (
@@ -255,16 +321,47 @@ export default function Register() {
                 className="space-y-4"
               >
                 <div className="relative">
-                  <FaUser className="absolute top-3 left-3 text-gray-light" />
-                  <input
-                    type="text"
-                    name="username"
-                    placeholder="Nom d'utilisateur"
-                    value={formData.username}
-                    onChange={handleChange}
-                    className="input w-full pl-10"
-                    autoFocus
-                  />
+                  <label className="block text-gray-light mb-2">
+                    Nom d'utilisateur
+                  </label>
+                  <div className="relative">
+                    <FaUser className="absolute top-3 left-3 text-gray-light" />
+                    <input
+                      type="text"
+                      name="username"
+                      placeholder="Nom d'utilisateur"
+                      value={formData.username}
+                      onChange={handleChange}
+                      className={`input w-full pl-10 ${
+                        usernameAvailable === true 
+                          ? 'border-green-500' 
+                          : usernameAvailable === false 
+                            ? 'border-red-500' 
+                            : ''
+                      }`}
+                      autoFocus
+                      minLength={3}
+                      required
+                    />
+                    {isCheckingUsername && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                      </div>
+                    )}
+                    {!isCheckingUsername && usernameAvailable === true && formData.username.trim() !== '' && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500">
+                        <FaCheck />
+                      </div>
+                    )}
+                    {!isCheckingUsername && usernameAvailable === false && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500">
+                        <FaTimes />
+                      </div>
+                    )}
+                  </div>
+                  {!isCheckingUsername && usernameAvailable === false && (
+                    <p className="text-red-400 text-xs mt-1">Ce nom d'utilisateur est déjà pris</p>
+                  )}
                 </div>
                 <p className="text-sm text-gray-light">
                   Choisissez un nom d'utilisateur unique qui sera visible dans votre lien de partage:
@@ -283,7 +380,7 @@ export default function Register() {
                   <button
                     type="button"
                     onClick={nextStep}
-                    disabled={isCheckingUsername}
+                    disabled={isCheckingUsername || usernameAvailable === false}
                     className="btn-primary w-1/2"
                   >
                     {isCheckingUsername ? (
@@ -307,27 +404,63 @@ export default function Register() {
                 className="space-y-4"
               >
                 <div className="relative">
-                  <FaLock className="absolute top-3 left-3 text-gray-light" />
-                  <input
-                    type="password"
-                    name="password"
-                    placeholder="Mot de passe"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="input w-full pl-10"
-                    autoFocus
-                  />
+                  <label className="block text-gray-light mb-2">
+                    Mot de passe
+                  </label>
+                  <div className="relative">
+                    <FaLock className="absolute top-3 left-3 text-gray-light" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      placeholder="Mot de passe (min. 6 caractères)"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="input w-full pl-10"
+                      autoFocus
+                      minLength={6}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-3 right-3 text-gray-light hover:text-white transition-colors"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
                 </div>
                 <div className="relative">
-                  <FaLock className="absolute top-3 left-3 text-gray-light" />
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    placeholder="Confirmer le mot de passe"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className="input w-full pl-10"
-                  />
+                  <label className="block text-gray-light mb-2">
+                    Confirmer le mot de passe
+                  </label>
+                  <div className="relative">
+                    <FaLock className="absolute top-3 left-3 text-gray-light" />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      placeholder="Confirmer le mot de passe"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className={`input w-full pl-10 ${
+                        formData.confirmPassword.length > 0 && formData.password === formData.confirmPassword
+                          ? 'border-green-500'
+                          : formData.confirmPassword.length > 0
+                            ? 'border-red-500'
+                            : ''
+                      }`}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-3 right-3 text-gray-light hover:text-white transition-colors"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
+                  {formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword && (
+                    <p className="text-red-400 text-xs mt-1">Les mots de passe ne correspondent pas</p>
+                  )}
                 </div>
                 <div className="flex space-x-4 mt-6">
                   <button
@@ -339,10 +472,17 @@ export default function Register() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || formData.password !== formData.confirmPassword}
                     className="btn-primary w-1/2"
                   >
-                    {isLoading ? "Création..." : "Créer mon compte"}
+                    {isLoading ? (
+                      <span className="flex items-center justify-center">
+                        <span className="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                        Création...
+                      </span>
+                    ) : (
+                      "Créer mon compte"
+                    )}
                   </button>
                 </div>
               </motion.div>

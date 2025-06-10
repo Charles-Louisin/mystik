@@ -3,11 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaEnvelope, FaLock, FaUserSecret, FaTimes, FaInfoCircle } from "react-icons/fa";
+import { 
+  FaEnvelope, FaLock, FaUserSecret, FaTimes, FaInfoCircle, 
+  FaGamepad, FaLightbulb, FaKey, FaQuestion, FaPuzzlePiece
+} from "react-icons/fa";
 
 import AnimatedLogo from "@/components/animations/AnimatedLogo";
 import AnimatedIcon from "@/components/animations/AnimatedIcon";
 import AnimatedButton from "@/components/animations/AnimatedButton";
+import AnimatedEmoji from "@/components/ui/AnimatedEmoji";
 
 export default function Home() {
   const [activeModal, setActiveModal] = useState(null);
@@ -27,36 +31,118 @@ export default function Home() {
     anonymat: {
       title: "Anonymat total",
       content: [
-        "Mystik garantit un anonymat complet pour tous les expéditeurs de messages. Voici comment ça fonctionne :",
-        "• Aucune information d'identification n'est associée à votre message",
-        "• Même nous ne savons pas qui a envoyé quel message",
-        "• Option d'utiliser des VPN ou le réseau Tor pour une sécurité renforcée",
-        "• Possibilité de définir des conditions spécifiques pour révéler votre identité",
-        "• Système de masques virtuels pour personnaliser votre anonymat"
+        <>
+          <AnimatedEmoji emoji="🕵️" delay={0.1} /> <span className="font-bold text-xl text-primary">Protection de votre identité</span>
+          <p className="mt-2">Mystik garantit un anonymat complet pour tous les expéditeurs de messages :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Aucune information d'identification n'est associée à votre message</li>
+            <li>Même nous ne savons pas qui a envoyé quel message</li>
+            <li>Option d'utiliser des VPN ou le réseau Tor pour une sécurité renforcée</li>
+          </ul>
+        </>,
+        <>
+          <AnimatedEmoji emoji="🎭" delay={0.2} /> <span className="font-bold text-xl text-secondary">Masques personnalisés</span>
+          <p className="mt-2">Personnalisez votre anonymat selon vos préférences :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Créez un surnom unique pour chaque message</li>
+            <li>Choisissez un masque virtuel qui vous représente</li>
+            <li>Décidez quelles informations peuvent être révélées</li>
+          </ul>
+        </>,
+        <>
+          <AnimatedEmoji emoji="🔒" delay={0.3} /> <span className="font-bold text-xl text-primary">Contrôle total</span>
+          <p className="mt-2">Vous gardez le contrôle sur votre anonymat :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Définissez des conditions spécifiques pour révéler votre identité</li>
+            <li>Possibilité de rester anonyme pour toujours</li>
+            <li>Notifications quand quelqu'un découvre votre identité</li>
+          </ul>
+        </>
       ]
     },
     messages: {
       title: "Messages créatifs",
       content: [
-        "Mystik transforme vos messages anonymes en expériences interactives :",
-        "• Filtres émotionnels qui changent l'apparence et le ton de vos messages",
-        "• Ajoutez des indices subtils ou évidents selon votre préférence",
-        "• Intégrez des emojis et des éléments visuels pour personnaliser vos messages",
-        "• Créez des devinettes que le destinataire doit résoudre",
-        "• Programmez des messages à délivrer dans le futur",
-        "• Utilisez des effets visuels uniques pour que votre message se démarque"
+        <>
+          <AnimatedEmoji emoji="🎨" delay={0.1} /> <span className="font-bold text-xl text-primary">Personnalisation des messages</span>
+          <p className="mt-2">Transformez vos messages anonymes en véritables œuvres d'art :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Filtres émotionnels qui changent l'apparence et le ton de vos messages</li>
+            <li>Ajoutez des emojis représentatifs pour exprimer votre humeur</li>
+            <li>Créez un style visuel unique avec des animations et des effets</li>
+          </ul>
+        </>,
+        <>
+          <AnimatedEmoji emoji="🧩" delay={0.2} /> <span className="font-bold text-xl text-secondary">Indices et devinettes</span>
+          <p className="mt-2">Ajoutez une dimension ludique à vos messages :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Laissez des indices subtils sur votre identité</li>
+            <li>Créez des devinettes personnalisées avec questions et réponses</li>
+            <li>Proposez des défis que le destinataire doit relever</li>
+          </ul>
+        </>,
+        <>
+          <AnimatedEmoji emoji="⏰" delay={0.3} /> <span className="font-bold text-xl text-primary">Messages temporels</span>
+          <p className="mt-2">Jouez avec le temps pour créer de l'intrigue :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Programmez des messages à délivrer dans le futur</li>
+            <li>Créez des messages qui s'auto-détruisent après lecture</li>
+            <li>Messages du futur que le destinataire découvrira à une date précise</li>
+          </ul>
+        </>
       ]
     },
     revelations: {
-      title: "Révélations ludiques",
+      title: "Système de jeu et révélations",
       content: [
-        "Mystik réinvente la façon dont l'identité peut être révélée :",
-        "• Jeux et défis interactifs que le destinataire doit compléter",
-        "• Système de paris où le destinataire peut essayer de deviner votre identité",
-        "• Révélation progressive avec des indices supplémentaires débloqués au fil du temps",
-        "• Défis sociaux qui encouragent l'interaction avant la révélation",
-        "• Système de clés qui peuvent être gagnées ou achetées",
-        "• Option de rester anonyme pour toujours si vous le souhaitez"
+        <>
+          <AnimatedEmoji emoji="🎮" delay={0.1} /> <span className="font-bold text-xl text-primary">Un jeu de devinettes captivant</span>
+          <p className="mt-2">Mystik transforme la découverte d'identité en expérience ludique :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Le destinataire peut essayer de deviner votre nom ou votre identité</li>
+            <li>Système de vérification qui confirme si la réponse est correcte</li>
+            <li>Animation festive avec confettis quand l'identité est découverte</li>
+          </ul>
+        </>,
+        <>
+          <AnimatedEmoji emoji="🔑" delay={0.2} /> <span className="font-bold text-xl text-secondary">Système d'indices progressifs</span>
+          <p className="mt-2">Un système d'indices complet pour aider la découverte :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li><strong>Collecte d'indices uniques :</strong> Utilisez des clés pour découvrir des indices sur l'expéditeur</li>
+            <li><strong>Variété d'indices :</strong> Première ou dernière lettre du surnom, emoji représentatif, indice textuel, localisation approximative...</li>
+            <li><strong>Gestion intelligente :</strong> Les indices déjà découverts ne réapparaissent pas</li>
+            <li><strong>Progression visible :</strong> Suivez le nombre d'indices restants à découvrir</li>
+          </ul>
+        </>,
+        <>
+          <AnimatedEmoji emoji="🧠" delay={0.3} /> <span className="font-bold text-xl text-primary">Devinettes avec récompenses</span>
+          <p className="mt-2">Résolvez des devinettes pour obtenir des avantages :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li><strong>Système de devinettes :</strong> L'expéditeur peut laisser une question énigmatique</li>
+            <li><strong>Récompenses :</strong> Débloquez des indices supplémentaires en résolvant la devinette</li>
+            <li><strong>Validation instantanée :</strong> Vérification immédiate de votre réponse</li>
+          </ul>
+        </>,
+        <>
+          <AnimatedEmoji emoji="🎁" delay={0.4} /> <span className="font-bold text-xl text-secondary">Système de clés et récompenses</span>
+          <p className="mt-2">Plusieurs façons d'obtenir des clés pour révéler des indices :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Gagnez des clés en visionnant des publicités récompensées</li>
+            <li>Invitez vos amis pour recevoir des clés bonus</li>
+            <li>Partagez votre profil sur les réseaux sociaux</li>
+            <li>Participez à des défis communautaires</li>
+          </ul>
+        </>,
+        <>
+          <AnimatedEmoji emoji="📱" delay={0.5} /> <span className="font-bold text-xl text-primary">Interface interactive</span>
+          <p className="mt-2">Une expérience utilisateur fluide et engageante :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Animations visuelles attrayantes lors de la découverte d'indices</li>
+            <li>Feedback immédiat à chaque action</li>
+            <li>Tableau de progression montrant les indices collectés</li>
+            <li>Célébration visuelle lors de la découverte de l'identité</li>
+          </ul>
+        </>
       ]
     }
   };
@@ -267,11 +353,11 @@ export default function Home() {
                 custom={4}
               >
                 <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                  <AnimatedIcon icon={FaUserSecret} color="primary" size="md" />
+                  <AnimatedIcon icon={FaGamepad} color="primary" size="md" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Révélations ludiques</h3>
+                <h3 className="text-xl font-bold mb-2">Système de jeu interactif</h3>
                 <p className="text-gray-light mb-4">
-                  Découvrez qui vous a écrit via des jeux et défis.
+                  Découvrez l'identité de l'expéditeur avec un jeu d'indices et de devinettes captivant.
                 </p>
                 <AnimatedButton 
                   onClick={() => openModal('revelations')}
@@ -307,7 +393,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto"
             onClick={closeModal}
           >
             <motion.div
@@ -315,7 +401,7 @@ export default function Home() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", damping: 20 }}
-              className="bg-card-bg p-6 rounded-2xl max-w-lg w-full"
+              className="bg-card-bg p-6 rounded-2xl max-w-lg w-full my-8"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-6">
@@ -332,17 +418,17 @@ export default function Home() {
                 </motion.button>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
                 {modalContent[activeModal].content.map((paragraph, index) => (
-                  <motion.p 
+                  <motion.div 
                     key={index} 
-                    className={index === 0 ? "text-white" : "text-gray-light"}
+                    className="bg-gray-900 rounded-lg p-4"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 * index, duration: 0.3 }}
                   >
                     {paragraph}
-                  </motion.p>
+                  </motion.div>
                 ))}
               </div>
               

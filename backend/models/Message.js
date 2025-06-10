@@ -20,10 +20,19 @@ const MessageSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    nameDiscovered: {
+      type: Boolean,
+      default: false
+    },
     realUser: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
+    },
+    partialInfo: {
+      firstLetter: String,
+      blurredImage: String,
+      approximateLocation: String
     }
   },
   content: {
@@ -43,13 +52,31 @@ const MessageSchema = new mongoose.Schema({
       answer: String
     }
   },
+  discoveredHints: [{
+    type: {
+      type: String,
+      required: true
+    },
+    value: {
+      type: String,
+      required: true
+    },
+    description: {
+      type: String,
+      default: 'Indice'
+    }
+  }],
   revealCondition: {
     type: {
       type: String,
-      enum: ['devinette', 'mini-jeu', 'défi', 'paiement', 'aucune'],
+      enum: ['devinette', 'mini-jeu', 'défi', 'paiement', 'clé', 'aucune'],
       default: 'aucune'
     },
-    details: mongoose.Schema.Types.Mixed
+    details: mongoose.Schema.Types.Mixed,
+    completed: {
+      type: Boolean,
+      default: false
+    }
   },
   customMask: {
     type: String,
@@ -69,6 +96,11 @@ const MessageSchema = new mongoose.Schema({
   likes: {
     type: Number,
     default: 0
+  },
+  aiAnalysis: {
+    emotionalIntent: String,
+    summary: String,
+    suggestionForReply: String
   },
   read: {
     type: Boolean,

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { FaPhone, FaLock, FaArrowLeft } from "react-icons/fa";
+import { FaPhone, FaLock, FaArrowLeft, FaEye, FaEyeSlash } from "react-icons/fa";
 import toast from "react-hot-toast";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -12,10 +12,11 @@ import { useRouter } from "next/navigation";
 export default function Login() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    phoneNumber: "",
+    phone: "",
     password: ""
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -28,8 +29,15 @@ export default function Login() {
     e.preventDefault();
     
     // Validation simple
-    if (!formData.phoneNumber.trim() || !formData.password) {
+    if (!formData.phone.trim() || !formData.password) {
       toast.error("Veuillez remplir tous les champs");
+      return;
+    }
+    
+    // Validation du numéro de téléphone
+    const phoneRegex = /^\d{9}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      toast.error("Veuillez entrer un numéro de téléphone valide (9 chiffres)");
       return;
     }
 
@@ -41,8 +49,11 @@ export default function Login() {
         ? 'http://localhost:5000' 
         : window.location.origin;
       
+      // Formatage du numéro avec +237
+      const formattedPhone = `+237${formData.phone}`;
+      
       const response = await axios.post(`${apiBaseUrl}/api/auth/login`, {
-        phoneNumber: formData.phoneNumber,
+        phone: formattedPhone,
         password: formData.password
       });
       
@@ -87,29 +98,49 @@ export default function Login() {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="relative">
-              <FaPhone className="absolute top-3 left-3 text-gray-light" />
-              <input
-                type="tel"
-                name="phoneNumber"
-                placeholder="Numéro de téléphone"
-                value={formData.phoneNumber}
-                onChange={handleChange}
-                className="input w-full pl-10"
-                autoFocus
-              />
+            <div>
+              <label className="block text-gray-light mb-2">
+                Numéro de téléphone
+              </label>
+              <div className="flex">
+                <div className="bg-gray-800 flex items-center justify-center px-3 rounded-l-lg border-r border-gray-700">
+                  <span className="text-gray-400">+237</span>
+                </div>
+                <div className="relative flex-1">
+                  <FaPhone className="absolute top-3 left-3 text-gray-light" />
+                  <input
+                    type="tel"
+                    name="phone"
+                    placeholder="612345678"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="input rounded-l-none w-full pl-10"
+                    maxLength={9}
+                    autoFocus
+                    required
+                  />
+                </div>
+              </div>
             </div>
             
             <div className="relative">
               <FaLock className="absolute top-3 left-3 text-gray-light" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="Mot de passe"
                 value={formData.password}
                 onChange={handleChange}
                 className="input w-full pl-10"
+                required
               />
+              <button
+                type="button"
+                className="absolute top-3 right-3 text-gray-light hover:text-white transition-colors"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
             </div>
             
             <button
@@ -117,7 +148,14 @@ export default function Login() {
               disabled={isLoading}
               className="btn-primary w-full mt-8"
             >
-              {isLoading ? "Connexion..." : "Se connecter"}
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <span className="animate-spin h-5 w-5 mr-2 border-2 border-white border-t-transparent rounded-full"></span>
+                  Connexion...
+                </span>
+              ) : (
+                "Se connecter"
+              )}
             </button>
           </form>
 

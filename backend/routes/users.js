@@ -17,6 +17,24 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/users/me/keys
+// @desc    Get user's reveal keys
+// @access  Private
+router.get('/me/keys', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('revealKeys');
+    
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+    }
+    
+    res.json({ revealKeys: user.revealKeys });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
 // @route   GET /api/users/public/:uniqueLink
 // @desc    Get user public profile by uniqueLink
 // @access  Public
@@ -313,6 +331,234 @@ router.get('/search', async (req, res) => {
     }).select('username uniqueLink profileImage').limit(10);
     
     res.json(users);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// @route   POST /api/users/masks
+// @desc    Add a custom mask to user
+// @access  Private
+router.post('/masks', auth, async (req, res) => {
+  try {
+    const { name, imageUrl, isPremium } = req.body;
+
+    if (!name || !imageUrl) {
+      return res.status(400).json({ msg: 'Nom et image requis' });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+    }
+
+    // Vérifier si l'utilisateur peut ajouter un masque premium
+    if (isPremium && !user.premium) {
+      return res.status(403).json({ msg: 'Abonnement premium requis pour ce masque' });
+    }
+
+    // Créer le nouveau masque
+    const newMask = {
+      name,
+      imageUrl,
+      isPremium: isPremium || false,
+      active: false
+    };
+
+    user.customMasks.push(newMask);
+    await user.save();
+
+    res.json(user.customMasks);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// @route   GET /api/users/masks
+// @desc    Get all user masks
+// @access  Private
+router.get('/masks', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+    }
+
+    res.json(user.customMasks);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// @route   PUT /api/users/masks/:maskId/activate
+// @desc    Set a mask as active
+// @access  Private
+router.put('/masks/:maskId/activate', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+    }
+
+    // Désactiver tous les masques
+    user.customMasks.forEach(mask => {
+      mask.active = false;
+    });
+
+    // Trouver et activer le masque spécifié
+    const maskIndex = user.customMasks.findIndex(
+      mask => mask._id.toString() === req.params.maskId
+    );
+
+    if (maskIndex === -1) {
+      return res.status(404).json({ msg: 'Masque non trouvé' });
+    }
+
+    user.customMasks[maskIndex].active = true;
+    await user.save();
+
+    res.json(user.customMasks);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// @route   DELETE /api/users/masks/:maskId
+// @desc    Delete a mask
+// @access  Private
+router.delete('/masks/:maskId', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+    }
+
+    // Filtrer pour supprimer le masque
+    user.customMasks = user.customMasks.filter(
+      mask => mask._id.toString() !== req.params.maskId
+    );
+
+    await user.save();
+    res.json(user.customMasks);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// @route   PUT /api/users/emotional-radar
+// @desc    Toggle emotional radar setting
+// @access  Private
+router.put('/emotional-radar', auth, async (req, res) => {
+  try {
+    const { enabled } = req.body;
+
+    if (enabled === undefined) {
+      return res.status(400).json({ msg: 'Paramètre "enabled" requis' });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+    }
+
+    user.localEmotionalRadar = {
+      enabled: enabled,
+      lastUpdated: new Date()
+    };
+
+    await user.save();
+
+    res.json(user.localEmotionalRadar);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// @route   POST /api/users/favorite/:messageId
+// @desc    Add a message to favorites
+// @access  Private
+router.post('/favorite/:messageId', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    const message = await Message.findOne({
+      _id: req.params.messageId,
+      recipient: req.user.id
+    });
+
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+    }
+
+    if (!message) {
+      return res.status(404).json({ msg: 'Message non trouvé' });
+    }
+
+    // Vérifier si le message est déjà en favori
+    if (user.favoriteMessages.includes(req.params.messageId)) {
+      return res.status(400).json({ msg: 'Message déjà en favori' });
+    }
+
+    user.favoriteMessages.push(req.params.messageId);
+    await user.save();
+
+    res.json(user.favoriteMessages);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// @route   DELETE /api/users/favorite/:messageId
+// @desc    Remove a message from favorites
+// @access  Private
+router.delete('/favorite/:messageId', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+    }
+
+    // Filtrer pour supprimer des favoris
+    user.favoriteMessages = user.favoriteMessages.filter(
+      id => id.toString() !== req.params.messageId
+    );
+
+    await user.save();
+    res.json(user.favoriteMessages);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
+// @route   GET /api/users/favorites
+// @desc    Get all favorite messages
+// @access  Private
+router.get('/favorites', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ msg: 'Utilisateur non trouvé' });
+    }
+
+    const favoriteMessages = await Message.find({
+      _id: { $in: user.favoriteMessages }
+    }).sort({ createdAt: -1 });
+
+    res.json(favoriteMessages);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Erreur serveur');

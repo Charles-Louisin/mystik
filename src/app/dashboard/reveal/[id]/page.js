@@ -162,7 +162,9 @@ export default function RevealIdentity() {
                 </div>
                 <div>
                   <h3 className="font-medium">
-                    {message.sender.nickname || "Anonyme"}
+                    {message.sender.identityRevealed 
+                      ? message.sender.nickname 
+                      : "Anonyme"}
                   </h3>
                   <p className="text-sm text-gray-light line-clamp-1">
                     {message.content}
@@ -170,7 +172,7 @@ export default function RevealIdentity() {
                 </div>
               </div>
               
-              {message.clues && (
+              {message.clues && message.sender.identityRevealed && (
                 <div className="mt-2">
                   {message.clues.emoji && (
                     <span className="text-2xl mr-2">{message.clues.emoji}</span>
@@ -178,6 +180,14 @@ export default function RevealIdentity() {
                   {message.clues.hint && (
                     <span className="text-gray-light text-sm">{message.clues.hint}</span>
                   )}
+                </div>
+              )}
+              
+              {message.clues && !message.sender.identityRevealed && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-light">
+                    Ce message contient des indices cachés que vous pourrez découvrir après révélation
+                  </p>
                 </div>
               )}
             </div>
