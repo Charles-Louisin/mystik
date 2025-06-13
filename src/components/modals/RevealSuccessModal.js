@@ -248,8 +248,8 @@ const RevealSuccessModal = ({
           setShowRiddle(false);
           setShowForm(true);
           
-          // Rafraîchir les indices depuis le serveur
-          fetchDiscoveredHints();
+          // Ne pas rafraîchir les indices depuis le serveur pour éviter que l'indice ne disparaisse
+          // fetchDiscoveredHints();
         }, 1000);
         
         // Mettre à jour les statistiques d'indices si nécessaire
@@ -359,10 +359,11 @@ const RevealSuccessModal = ({
         // Montrer le formulaire de devinette si ce n'est pas déjà fait
         setShowForm(true);
         
-        // Rafraîchir les indices depuis le serveur pour s'assurer de la synchronisation
-        setTimeout(() => {
-          fetchDiscoveredHints();
-        }, 500);
+        // Ne pas rafraîchir les indices depuis le serveur immédiatement
+        // pour éviter que l'indice nouvellement obtenu ne disparaisse
+        // setTimeout(() => {
+        //   fetchDiscoveredHints();
+        // }, 500);
       } else if (data && data.message === 'no_hints_available') {
         // Pas d'indices disponibles
         setHintStats(prev => ({
@@ -562,7 +563,7 @@ const RevealSuccessModal = ({
       if (response.data && response.data.sender) {
         if (senderInfo) {
           // Mettre à jour toutes les propriétés importantes
-          senderInfo.userDiscovered = true;
+        senderInfo.userDiscovered = true;
           senderInfo.realUserName = response.data.sender.realUserName || guessName;
           senderInfo.uniqueLink = response.data.sender.uniqueLink;
           senderInfo.realUserId = response.data.sender.realUserId || response.data.sender._id;
@@ -967,15 +968,50 @@ const RevealSuccessModal = ({
                       <h5 className="text-xs uppercase text-yellow-400 mb-2 font-semibold">Lettres du surnom</h5>
                       <div className="flex flex-wrap gap-2">
                         {obtainedHints
-                          .filter(hint => hint.type && hint.type.startsWith('letter_'))
+                          .filter(hint => {
+                            // N'accepter que la première et dernière lettre
+                            if (hint.type === 'letter_first' || hint.type === 'letter_last') {
+                              return true;
+                            }
+                            
+                            // Pour les indices letter_X, vérifier s'il s'agit de la position 0 (première) ou dernière
+                            if (hint.type && hint.type.startsWith('letter_')) {
+                              const posMatch = hint.type.match(/letter_(\d+)/);
+                              if (posMatch) {
+                                const position = parseInt(posMatch[1]);
+                                
+                                // Si le surnom existe, vérifier si c'est la première ou dernière position
+                                if (senderInfo && senderInfo.nickname) {
+                                  const nicknameLength = senderInfo.nickname.length;
+                                  return position === 0 || position === nicknameLength - 1;
+                                }
+                                
+                                // Si on n'a pas accès au surnom, garder uniquement la première position
+                                return position === 0;
+                              }
+                            }
+                            
+                            return false;
+                          })
                           .sort((a, b) => {
+                            // Tri spécial pour gérer letter_first et letter_last
+                            if (a.type === 'letter_first') return -1;
+                            if (b.type === 'letter_first') return 1;
+                            if (a.type === 'letter_last') return 1;
+                            if (b.type === 'letter_last') return -1;
+                            
+                            // Pour les autres indices letter_X, trier par position
                             const numA = parseInt(a.type.split('_')[1]);
                             const numB = parseInt(b.type.split('_')[1]);
                             return numA - numB;
                           })
                           .map((hint, index) => (
                             <div key={index} className="bg-gray-700 px-3 py-2 rounded-lg shadow-md transform hover:scale-105 transition-transform">
-                              <p className="text-xs text-gray-light mb-1">{hint.description}</p>
+                              <p className="text-xs text-gray-light mb-1">
+                                {hint.type === 'letter_first' ? 'Première lettre' : 
+                                 hint.type === 'letter_last' ? 'Dernière lettre' : 
+                                 `Position ${parseInt(hint.type.split('_')[1]) + 1}`}
+                              </p>
                               <p className="text-xl font-bold text-center text-primary">{hint.value}</p>
                             </div>
                           ))}
@@ -999,22 +1035,7 @@ const RevealSuccessModal = ({
                     </div>
                   )}
                   
-                  {/* Indices de localisation */}
-                  {obtainedHints.some(hint => hint.type && hint.type.includes('location')) && (
-                    <div className="bg-gray-750 p-3 rounded-lg border-l-4 border-green-400">
-                      <h5 className="text-xs uppercase text-green-400 mb-2 font-semibold">Localisation</h5>
-                      <div className="bg-gray-700 px-3 py-2 rounded-lg shadow-md">
-                        {obtainedHints
-                          .filter(hint => hint.type && hint.type.includes('location'))
-                          .map((hint, index) => (
-                            <div key={index} className="mb-1">
-                              <p className="text-xs text-gray-light">{hint.description}</p>
-                              <p className="text-sm text-white">{hint.value}</p>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
+
                   
                   {/* Indices spéciaux (emoji, indice laissé par l'expéditeur, etc.) */}
                   {obtainedHints.some(hint => hint.type && ['emoji', 'hint', 'riddle_success', 'sender_hint'].includes(hint.type)) && (
@@ -1042,9 +1063,10 @@ const RevealSuccessModal = ({
                   {obtainedHints.some(hint => 
                     hint.type && 
                     !hint.type.startsWith('letter_') && 
+                    hint.type !== 'letter_first' &&
+                    hint.type !== 'letter_last' &&
                     !hint.type.includes('length') && 
                     !hint.type.startsWith('word_') && 
-                    !hint.type.includes('location') && 
                     !['emoji', 'hint', 'riddle_success', 'sender_hint'].includes(hint.type)
                   ) && (
                     <div className="bg-gray-750 p-3 rounded-lg border-l-4 border-orange-400">
@@ -1055,9 +1077,10 @@ const RevealSuccessModal = ({
                           .filter(hint => 
                             hint.type && 
                             !hint.type.startsWith('letter_') && 
+                            hint.type !== 'letter_first' &&
+                            hint.type !== 'letter_last' &&
                             !hint.type.includes('length') && 
                             !hint.type.startsWith('word_') && 
-                            !hint.type.includes('location') && 
                             !['emoji', 'hint', 'riddle_success', 'sender_hint'].includes(hint.type)
                           )
                           .map(hint => JSON.stringify({value: hint.value, description: hint.description}))))

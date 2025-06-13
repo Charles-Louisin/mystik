@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const multer = require('multer');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -21,8 +22,14 @@ console.log('MongoDB URI:', process.env.MONGODB_URI);
 console.log('Port:', PORT);
 
 // Middleware
+// Utiliser notre middleware CORS personnalisé
+const corsMiddleware = require('./middleware/cors');
+app.use(corsMiddleware);
+
+// Garder cors comme fallback pour la compatibilité
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Pour parser application/x-www-form-urlencoded
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI)

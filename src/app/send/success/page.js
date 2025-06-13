@@ -1,12 +1,14 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { FaCheck, FaHome, FaPaperPlane, FaUser } from "react-icons/fa";
 
-export default function SendSuccess() {
+// Composant qui utilise useSearchParams
+function SuccessContent() {
   const searchParams = useSearchParams();
   const to = searchParams.get("to");
   const username = searchParams.get("username");
@@ -77,5 +79,14 @@ export default function SendSuccess() {
         </motion.div>
       </main>
     </div>
+  );
+}
+
+// Composant principal qui enveloppe le contenu dans Suspense
+export default function SendSuccess() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+      <SuccessContent />
+    </Suspense>
   );
 } 

@@ -1,0 +1,1719 @@
+"use client";
+
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { FaArrowLeft, FaUser, FaSmile, FaQuestion, FaLightbulb, FaPaperPlane, FaSearch, FaTimes, FaSignInAlt, FaUserPlus, FaCheck, FaEye, FaEyeSlash, FaMicrophone, FaStop, FaVolumeUp, FaTrash, FaPause, FaPlay, FaArrowRight } from "react-icons/fa";
+import toast from "react-hot-toast";
+import axios from "axios";
+
+const emotionalFilters = [
+  { id: "neutre", name: "Neutre", color: "#9e9e9e", emoji: "✨", bgColor: "rgba(158, 158, 158, 0.15)" },
+  { id: "amour", name: "Amour", color: "#e91e63", emoji: "❤️", bgColor: "rgba(233, 30, 99, 0.15)" },
+  { id: "colère", name: "Colère", color: "#f44336", emoji: "😡", bgColor: "rgba(244, 67, 54, 0.15)" },
+  { id: "admiration", name: "Admiration", color: "#8bc34a", emoji: "😮", bgColor: "rgba(139, 195, 74, 0.15)" },
+  { id: "regret", name: "Regret", color: "#607d8b", emoji: "😔", bgColor: "rgba(96, 125, 139, 0.15)" },
+  { id: "joie", name: "Joie", color: "#ffeb3b", emoji: "😄", bgColor: "rgba(255, 235, 59, 0.15)" },
+  { id: "tristesse", name: "Tristesse", color: "#2196f3", emoji: "😢", bgColor: "rgba(33, 150, 243, 0.15)" }
+];
+
+// Composant qui utilise useSearchParams
+function SearchParamsWrapper() {
+  const searchParams = useSearchParams();
+  const recipientLink = searchParams.get("to");
+  return <SendMessageContent recipientLink={recipientLink} />;
+}
+
+// Composant principal qui contient tout le code existant
+function SendMessageContent({ recipientLink }) {
+  const router = useRouter();
+  const searchTimeoutRef = useRef(null);
+
+  const [formData, setFormData] = useState({
+    recipientLink: recipientLink || "",
+    content: "",
+    nickname: "",
+    hint: "",
+    emoji: "",
+    riddleQuestion: "",
+    riddleAnswer: "",
+    emotionalFilter: "neutre",
+    scheduledDate: "",
+    customMask: "",
+    voiceMessage: null,
+    voiceFilter: "normal",
+    revealCondition: {
+      type: "aucune",
+      details: {}
+    }
+  });
+  
+  const [recipient, setRecipient] = useState(null);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [checkingUser, setCheckingUser] = useState(false);
+  const [step, setStep] = useState(recipientLink ? 2 : 1);
+  const [charCount, setCharCount] = useState(0);
+  const [availableMasks, setAvailableMasks] = useState([]);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authToken, setAuthToken] = useState(null);
+  const [authUser, setAuthUser] = useState(null);
+  const [sendAsAuthenticated, setSendAsAuthenticated] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [loginForm, setLoginForm] = useState({ phone: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ username: '', phone: '', password: '', password2: '' });
+  const [loginError, setLoginError] = useState('');
+  const [registerError, setRegisterError] = useState('');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isCheckingPhone, setIsCheckingPhone] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [phoneAvailable, setPhoneAvailable] = useState(null);
+  const MIN_CHAR_COUNT = 5;
+  const EMOJI_OPTIONS = ["😊", "😎", "🥸", "🤫", "😏", "😉", "👽", "👻", "🤖", "🦸", "🤩", "😍", "🤔", "🤯", "🤠", "👾"];
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterPassword2, setShowRegisterPassword2] = useState(false);
+  
+  // États pour l'enregistrement audio
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioURL, setAudioURL] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordingInterval, setRecordingIntervalId] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const progressIntervalRef = useRef(null);
+  
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioStreamRef = useRef(null);
+  const audioPlayerRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const audioSourceRef = useRef(null);
+  const audioEffectsRef = useRef({});
+  
+  // Filtres vocaux disponibles
+  const voiceFilters = [
+    { id: "normal", name: "Normal", description: "Votre voix naturelle", color: "#6e9cd4" },
+    { id: "robot", name: "Robot", description: "Effet robotique", color: "#50c878" },
+    { id: "grave", name: "Voix grave", description: "Voix plus profonde", color: "#9b59b6" },
+    { id: "aiguë", name: "Voix aiguë", description: "Voix plus haute", color: "#e67e22" },
+    { id: "alien", name: "Alien", description: "Effet extraterrestre", color: "#3498db" },
+    { id: "anonyme", name: "Anonyme", description: "Voix méconnaissable", color: "#e74c3c" }
+  ];
+  
+  // Vérifier si l'utilisateur est connecté
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setIsAuthenticated(true);
+      setAuthToken(token);
+      
+      // Récupérer les infos de l'utilisateur
+      const fetchUserData = async () => {
+        try {
+          const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:5000' 
+            : window.location.origin;
+          
+          const { data } = await axios.get(`${apiBaseUrl}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          setAuthUser(data.user);
+        } catch (error) {
+          console.error("Erreur lors de la récupération des données utilisateur:", error);
+        }
+      };
+      
+      fetchUserData();
+    }
+  }, []);
+
+  // Charger les masques disponibles
+  const fetchAvailableMasks = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      const { data } = await axios.get(`${apiBaseUrl}/api/users/masks`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      setAvailableMasks(data || []);
+    } catch (error) {
+      console.error("Erreur lors du chargement des masques:", error);
+    }
+  };
+
+  // Vérifier si le destinataire existe au chargement initial ou avec un paramètre d'URL
+  useEffect(() => {
+    if (recipientLink && recipientLink.trim() !== "") {
+      setFormData(prev => ({ ...prev, recipientLink: `@${recipientLink}` }));
+      checkUserExists(`@${recipientLink}`);
+    }
+  }, [recipientLink]);
+
+  // Passer automatiquement à l'étape 2 si un destinataire est trouvé et qu'on est sur l'étape 1
+  useEffect(() => {
+    if (recipient && step === 1 && recipientLink) {
+      setStep(2);
+    }
+  }, [recipient, step, recipientLink]);
+  
+  // Recherche avec debounce quand l'utilisateur tape
+  useEffect(() => {
+    // Annuler la recherche précédente
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    const input = formData.recipientLink.trim();
+    
+    // Réinitialiser le recipient si le champ est vide
+    if (!input) {
+      setRecipient(null);
+      return;
+    }
+    
+    // Attendre un court délai avant de lancer la recherche
+    searchTimeoutRef.current = setTimeout(() => {
+      // Ne pas rechercher de destinataire trop court
+      if (input.length >= 2) {
+        checkUserExists(input);
+      }
+    }, 500); // 500ms de délai
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [formData.recipientLink]);
+  
+  const checkUserExists = async (linkToCheck) => {
+    const link = linkToCheck || formData.recipientLink;
+    
+    if (!link || link.length < 2) {
+      setRecipient(null);
+      setSearchResults([]);
+      return;
+    }
+    
+    setCheckingUser(true);
+    
+    try {
+      // Traitement du format du lien
+      let processedLink = link;
+      
+      // Corriger le format du lien s'il est au format URL
+      if (processedLink.includes('http')) {
+        // Extraire l'identifiant unique de l'URL
+        try {
+          const url = new URL(processedLink);
+          const pathname = url.pathname;
+          
+          // Différents formats possibles
+          if (pathname.startsWith('/@')) {
+            // Format /@id
+            processedLink = pathname.substring(2);
+          } else if (pathname.startsWith('/')) {
+            // Format /id
+            processedLink = pathname.substring(1);
+          }
+          
+          // Si l'URL contient mystik.app@id (format incorrect)
+          if (url.hostname.includes('@')) {
+            const segments = url.hostname.split('@');
+            if (segments.length > 1) {
+              processedLink = segments[segments.length - 1];
+            }
+          }
+        } catch (error) {
+          console.error("Format d'URL invalide:", processedLink);
+        }
+      }
+      
+      // Supprimer @ si présent pour la recherche
+      if (processedLink.startsWith("@")) {
+        processedLink = processedLink.substring(1);
+      }
+      
+      // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      // Recherche partielle d'utilisateurs
+      const searchQuery = processedLink.toLowerCase();
+      const { data } = await axios.get(`${apiBaseUrl}/api/users/search?q=${encodeURIComponent(searchQuery)}`);
+      
+      if (data && data.length > 0) {
+        // Stocker tous les résultats de recherche
+        setSearchResults(data);
+        
+        // Trouver l'utilisateur exact ou le premier qui correspond partiellement
+        const exactMatch = data.find(user => 
+          user.uniqueLink.substring(1).toLowerCase() === searchQuery ||
+          user.username.toLowerCase() === searchQuery
+        );
+        
+        const userToUse = exactMatch || data[0];
+        
+        // Récupérer les informations de base du profil
+        const profileResponse = await axios.get(`${apiBaseUrl}/api/users/public/${userToUse.uniqueLink}`);
+        setRecipient(profileResponse.data);
+      } else {
+        setRecipient(null);
+        setSearchResults([]);
+        // Ne pas afficher d'erreur pour chaque frappe
+        if (!checkingUser) {
+          toast.error(`Aucun utilisateur trouvé correspondant à : ${searchQuery}`);
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors de la recherche d'utilisateur:", error);
+      setRecipient(null);
+      setSearchResults([]);
+      if (!checkingUser) {
+        toast.error("Erreur lors de la recherche. Veuillez réessayer.");
+      }
+    } finally {
+      setCheckingUser(false);
+    }
+  };
+  
+  const selectUser = (user) => {
+    router.push(`/send?to=${user.uniqueLink.replace('@', '')}`);
+  };
+  
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+    
+    // Mettre à jour le compteur de caractères pour le message
+    if (name === 'content') {
+      setCharCount(value.length);
+    }
+  };
+  
+  const handleEmojiSelect = (emoji) => {
+    setFormData({
+      ...formData,
+      emoji: formData.emoji === emoji ? "" : emoji
+    });
+  };
+  
+  const handleEmotionalFilterSelect = (filterId) => {
+    setFormData({
+      ...formData,
+      emotionalFilter: filterId
+    });
+  };
+  
+  // Fonction pour gérer la soumission du formulaire
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Vérifier si le formulaire est valide
+    if (!validateStep2()) {
+      return;
+    }
+    
+    // Nettoyer les effets audio avant la soumission
+    cleanupAudioEffects();
+    
+    setIsLoading(true);
+    
+    try {
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      // Vérifier si nous avons un message vocal
+      if (formData.voiceMessage) {
+        // Utiliser FormData pour l'envoi avec un fichier audio
+        const messageData = new FormData();
+        
+        // Ajouter les données de base
+        messageData.append('recipientLink', recipient.uniqueLink);
+        messageData.append('content', formData.content);
+        messageData.append('emotionalFilter', formData.emotionalFilter);
+        
+        // Ajouter les informations cachées
+        messageData.append('nickname', formData.nickname);
+        messageData.append('hint', formData.hint);
+        messageData.append('emoji', formData.emoji);
+        
+        // Ajouter la devinette
+        if (formData.riddleQuestion && formData.riddleAnswer) {
+          const riddle = {
+            question: formData.riddleQuestion,
+            answer: formData.riddleAnswer
+          };
+          messageData.append('riddle', JSON.stringify(riddle));
+        }
+        
+        // Ajouter les conditions de révélation
+        if (formData.revealCondition) {
+          messageData.append('revealCondition', JSON.stringify(formData.revealCondition));
+        }
+        
+        // Ajouter le message vocal
+        messageData.append('voiceMessage', formData.voiceMessage);
+        messageData.append('voiceFilter', formData.voiceFilter);
+        
+        // Ajouter le masque personnalisé s'il est sélectionné
+        if (formData.customMask) {
+          messageData.append('customMask', formData.customMask);
+        }
+        
+        // Ajouter la date programmée si définie
+        if (formData.scheduledDate) {
+          messageData.append('scheduledDate', formData.scheduledDate);
+        }
+        
+        // Ajouter l'authentification 
+        const headers = {};
+        if (isAuthenticated && sendAsAuthenticated && authToken) {
+          headers.Authorization = `Bearer ${authToken}`;
+          messageData.append('sendAsAuthenticated', 'true');
+          if (authUser && authUser._id) {
+            messageData.append('realUserId', authUser._id);
+          }
+        }
+        
+        // Afficher les données pour débogage
+        console.log('URL API:', `${apiBaseUrl}/api/messages/send`);
+        console.log('En-têtes:', headers);
+        console.log('Envoi de FormData avec fichier audio');
+        
+        // Vérifier le type du fichier audio
+        if (formData.voiceMessage instanceof Blob || formData.voiceMessage instanceof File) {
+          console.log('Type de fichier audio:', formData.voiceMessage.type);
+          console.log('Taille du fichier audio:', formData.voiceMessage.size, 'bytes');
+        } else {
+          console.error('Le fichier audio n\'est pas un Blob ou File valide:', typeof formData.voiceMessage);
+        }
+        
+        // Envoyer le message - Ne pas définir Content-Type pour FormData
+        // Axios le définira automatiquement avec la boundary correcte
+        const response = await axios.post(`${apiBaseUrl}/api/messages/send`, messageData, {
+          headers
+        });
+      } else {
+        // Sans fichier audio, utiliser un JSON standard
+        const messageData = {
+          recipientLink: recipient.uniqueLink,
+          content: formData.content,
+          emotionalFilter: formData.emotionalFilter,
+          nickname: formData.nickname || 'Anonyme',
+          hint: formData.hint || null,
+          emoji: formData.emoji || null
+        };
+        
+        // Ajouter la devinette
+        if (formData.riddleQuestion && formData.riddleAnswer) {
+          messageData.riddle = {
+            question: formData.riddleQuestion,
+            answer: formData.riddleAnswer
+          };
+        }
+        
+        // Ajouter les conditions de révélation
+        if (formData.revealCondition) {
+          messageData.revealCondition = formData.revealCondition;
+        }
+        
+        // Ajouter le masque personnalisé
+        if (formData.customMask) {
+          messageData.customMask = formData.customMask;
+        }
+        
+        // Ajouter la date programmée
+        if (formData.scheduledDate) {
+          messageData.scheduledDate = formData.scheduledDate;
+        }
+        
+        // Ajouter l'authentification
+        const headers = {};
+        if (isAuthenticated && sendAsAuthenticated && authToken) {
+          headers.Authorization = `Bearer ${authToken}`;
+          messageData.sendAsAuthenticated = true;
+          if (authUser && authUser._id) {
+            messageData.realUserId = authUser._id;
+          }
+        }
+        
+        // Afficher les données pour débogage
+        console.log('URL API:', `${apiBaseUrl}/api/messages/send`);
+        console.log('En-têtes:', headers);
+        console.log('Données JSON:', messageData);
+        
+        // Envoyer le message
+        const response = await axios.post(`${apiBaseUrl}/api/messages/send`, messageData, {
+          headers
+        });
+      }
+      
+      // Afficher un message de succès
+      toast.success("Message envoyé avec succès!");
+      
+      // Rediriger vers la page d'accueil
+      router.push('/');
+    } catch (error) {
+      console.error("Erreur lors de l'envoi du message:", error);
+      
+      // Afficher plus de détails sur l'erreur
+      if (error.response) {
+        // La requête a été faite et le serveur a répondu avec un code d'état
+        // qui ne fait pas partie de la plage 2xx
+        console.error('Réponse d\'erreur:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+        
+        // Afficher un message d'erreur plus spécifique
+        if (error.response.data && error.response.data.msg) {
+          toast.error(`Erreur: ${error.response.data.msg}`);
+        } else {
+          toast.error(`Erreur ${error.response.status}: ${error.response.statusText}`);
+        }
+      } else if (error.request) {
+        // La requête a été faite mais aucune réponse n'a été reçue
+        console.error('Aucune réponse reçue:', error.request);
+        toast.error("Aucune réponse du serveur. Veuillez vérifier votre connexion.");
+      } else {
+        // Une erreur s'est produite lors de la configuration de la requête
+        console.error('Erreur de configuration:', error.message);
+        toast.error(`Erreur lors de la préparation de la requête: ${error.message}`);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleRevealConditionChange = (type) => {
+    setFormData({
+      ...formData,
+      revealCondition: {
+        type,
+        details: {}
+      }
+    });
+  };
+  
+  const handleMaskSelect = (maskUrl) => {
+    setFormData({
+      ...formData,
+      customMask: formData.customMask === maskUrl ? "" : maskUrl
+    });
+  };
+  
+  const handleDateChange = (date) => {
+    setFormData({
+      ...formData,
+      scheduledDate: date
+    });
+  };
+  
+  const handleSendAsAuthenticatedToggle = () => {
+    setSendAsAuthenticated(!sendAsAuthenticated);
+  };
+  
+  const handleLoginChange = (e) => {
+    const { name, value } = e.target;
+    setLoginForm({
+      ...loginForm,
+      [name]: value
+    });
+  };
+  
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setLoginError('');
+    
+    try {
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      const { data } = await axios.post(`${apiBaseUrl}/api/auth/login`, {
+        phone: loginForm.phone,
+        password: loginForm.password
+      });
+      
+      if (data.token) {
+        // Sauvegarder le token
+        localStorage.setItem('token', data.token);
+        
+        // Mettre à jour l'état
+        setIsAuthenticated(true);
+        setAuthToken(data.token);
+        setAuthUser(data.user);
+        setSendAsAuthenticated(true);
+        setShowLoginModal(false);
+        
+        toast.success("Connexion réussie!");
+      }
+    } catch (error) {
+      console.error("Erreur de connexion:", error);
+      setLoginError(error.response?.data?.message || "Erreur de connexion. Veuillez réessayer.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleRegisterChange = (e) => {
+    const { name, value } = e.target;
+    setRegisterForm({
+      ...registerForm,
+      [name]: value
+    });
+    
+    // Vérification de disponibilité du nom d'utilisateur
+    if (name === 'username' && value.length >= 3) {
+      checkUsernameAvailability(value);
+    }
+    
+    // Vérification de disponibilité du numéro de téléphone
+    if (name === 'phone' && value.length === 9) {
+      checkPhoneAvailability(value);
+    }
+  };
+  
+  const checkUsernameAvailability = async (username) => {
+    if (username.length < 3) return;
+    
+    setIsCheckingUsername(true);
+    setUsernameAvailable(null);
+    
+    try {
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      const { data } = await axios.get(`${apiBaseUrl}/api/auth/check-username/${username}`);
+      setUsernameAvailable(data.available);
+    } catch (error) {
+      console.error("Erreur lors de la vérification du nom d'utilisateur:", error);
+      setUsernameAvailable(false);
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+  
+  const checkPhoneAvailability = async (phone) => {
+    if (phone.length !== 9) return;
+    
+    setIsCheckingPhone(true);
+    setPhoneAvailable(null);
+    
+    try {
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      const { data } = await axios.get(`${apiBaseUrl}/api/auth/check-phone/${phone}`);
+      setPhoneAvailable(data.available);
+    } catch (error) {
+      console.error("Erreur lors de la vérification du numéro de téléphone:", error);
+      setPhoneAvailable(false);
+    } finally {
+      setIsCheckingPhone(false);
+    }
+  };
+  
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setRegisterError('');
+    
+    // Vérifier que les mots de passe correspondent
+    if (registerForm.password !== registerForm.password2) {
+      setRegisterError("Les mots de passe ne correspondent pas.");
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+      
+      const { data } = await axios.post(`${apiBaseUrl}/api/auth/register`, {
+        username: registerForm.username,
+        phone: registerForm.phone,
+        password: registerForm.password
+      });
+      
+      if (data.token) {
+        // Sauvegarder le token
+        localStorage.setItem('token', data.token);
+        
+        // Mettre à jour l'état
+        setIsAuthenticated(true);
+        setAuthToken(data.token);
+        setAuthUser(data.user);
+        setSendAsAuthenticated(true);
+        setShowRegisterModal(false);
+        
+        toast.success("Compte créé avec succès!");
+      }
+    } catch (error) {
+      console.error("Erreur d'inscription:", error);
+      setRegisterError(error.response?.data?.message || "Erreur lors de la création du compte. Veuillez réessayer.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const validateStep1 = () => {
+    if (!recipient) {
+      toast.error("Destinataire non trouvé");
+      return false;
+    }
+    return true;
+  };
+  
+  const validateStep2 = () => {
+    if (!formData.content.trim()) {
+      toast.error("Le message ne peut pas être vide");
+      return false;
+    }
+    if (formData.content.length < MIN_CHAR_COUNT) {
+      toast.error(`Le message doit contenir au moins ${MIN_CHAR_COUNT} caractères`);
+      return false;
+    }
+    return true;
+  };
+  
+  const nextStep = () => {
+    // Nettoyer les effets audio si on quitte l'étape d'enregistrement
+    if (step === 2) {
+      cleanupAudioEffects();
+    }
+    
+    setStep(step + 1);
+  };
+  
+  const prevStep = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+  
+  // Fonction pour démarrer l'enregistrement audio
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStreamRef.current = stream;
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      
+      mediaRecorderRef.current.addEventListener("dataavailable", (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      });
+      
+      mediaRecorderRef.current.addEventListener("stop", () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setAudioBlob(audioBlob);
+        setAudioURL(audioUrl);
+        
+        // Mettre à jour le formData avec le blob audio
+        setFormData({
+          ...formData,
+          voiceMessage: audioBlob
+        });
+        
+        // Arrêter tous les tracks du stream pour libérer le microphone
+        stream.getTracks().forEach(track => track.stop());
+      });
+      
+      // Commencer l'enregistrement
+      audioChunksRef.current = [];
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setIsPaused(false);
+      
+      // Configurer le timer
+      const intervalId = setInterval(() => {
+        setRecordingTime(prevTime => prevTime + 1);
+      }, 1000);
+      
+      setRecordingIntervalId(intervalId);
+      
+    } catch (error) {
+      console.error("Erreur lors de l'accès au microphone:", error);
+      toast.error("Impossible d'accéder au microphone");
+    }
+  };
+  
+  // Fonction pour mettre en pause l'enregistrement
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && isRecording && !isPaused && mediaRecorderRef.current.state === "recording") {
+      try {
+        mediaRecorderRef.current.pause();
+        setIsPaused(true);
+        
+        // Arrêter le timer pendant la pause
+        if (recordingInterval) {
+          clearInterval(recordingInterval);
+          setRecordingIntervalId(null);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la mise en pause de l'enregistrement:", error);
+        // En cas d'erreur, on continue l'enregistrement plutôt que de le bloquer
+        toast.error("Impossible de mettre en pause l'enregistrement, continuez ou arrêtez-le");
+      }
+    }
+  };
+  
+  // Fonction pour reprendre l'enregistrement
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && isRecording && isPaused && mediaRecorderRef.current.state === "paused") {
+      try {
+        mediaRecorderRef.current.resume();
+        setIsPaused(false);
+        
+        // Reprendre le timer
+        const intervalId = setInterval(() => {
+          setRecordingTime(prevTime => prevTime + 1);
+        }, 1000);
+        
+        setRecordingIntervalId(intervalId);
+      } catch (error) {
+        console.error("Erreur lors de la reprise de l'enregistrement:", error);
+        // En cas d'erreur, on suggère d'arrêter l'enregistrement actuel
+        toast.error("Impossible de reprendre l'enregistrement, essayez de l'arrêter et d'en créer un nouveau");
+        // Tenter d'arrêter l'enregistrement pour éviter les erreurs
+        try {
+          stopRecording();
+        } catch (stopError) {
+          console.error("Erreur lors de l'arrêt de l'enregistrement:", stopError);
+        }
+      }
+    }
+  };
+  
+  // Fonction pour arrêter l'enregistrement
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      try {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+        setIsPaused(false);
+      
+      // Arrêter le timer
+      if (recordingInterval) {
+        clearInterval(recordingInterval);
+        setRecordingIntervalId(null);
+      }
+      
+      setRecordingTime(0);
+      } catch (error) {
+        console.error("Erreur lors de l'arrêt de l'enregistrement:", error);
+        // Réinitialiser les états en cas d'erreur
+        setIsRecording(false);
+        setIsPaused(false);
+        setRecordingTime(0);
+        
+        if (recordingInterval) {
+          clearInterval(recordingInterval);
+          setRecordingIntervalId(null);
+        }
+        
+        // Libérer les ressources audio
+        if (audioStreamRef.current) {
+          audioStreamRef.current.getTracks().forEach(track => track.stop());
+        }
+        
+        toast.error("Erreur lors de l'arrêt de l'enregistrement");
+      }
+    }
+  };
+  
+  // Fonction pour lire l'audio enregistré
+  const playAudio = (e) => {
+    // Empêcher la propagation et la soumission du formulaire
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (audioURL) {
+      // Créer un nouvel élément audio si nécessaire
+      if (!audioPlayerRef.current) {
+        audioPlayerRef.current = new Audio(audioURL);
+        
+        // Configurer les gestionnaires d'événements
+        audioPlayerRef.current.onended = () => {
+          setIsPlaying(false);
+          setAudioProgress(0);
+          
+          // Nettoyer les effets audio à la fin de la lecture
+          if (audioContextRef.current) {
+            // Suspendre le contexte audio pour économiser des ressources
+            audioContextRef.current.suspend();
+          }
+          
+          // Arrêter l'intervalle de progression
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+        };
+        
+        // Récupérer la durée de l'audio quand elle est disponible
+        audioPlayerRef.current.addEventListener('loadedmetadata', () => {
+          if (!isNaN(audioPlayerRef.current.duration) && isFinite(audioPlayerRef.current.duration)) {
+            setAudioDuration(audioPlayerRef.current.duration);
+          } else {
+            // En cas de problème, estimer la durée à partir de la taille du blob
+            if (audioBlob) {
+              // Estimation grossière : ~8KB par seconde pour l'audio WAV
+              const estimatedDuration = audioBlob.size / 8000;
+              setAudioDuration(estimatedDuration);
+            }
+          }
+        });
+        
+        // Gestionnaire d'erreur
+        audioPlayerRef.current.onerror = (e) => {
+          console.error("Erreur de lecture audio:", e);
+          setIsPlaying(false);
+        };
+      }
+      
+      if (isPlaying) {
+        // Si déjà en lecture, mettre en pause
+        audioPlayerRef.current.pause();
+        setIsPlaying(false);
+        
+        // Suspendre le contexte audio
+        if (audioContextRef.current) {
+          audioContextRef.current.suspend();
+        }
+        
+        // Arrêter l'intervalle de progression
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+      } else {
+        // Sinon, démarrer la lecture
+        
+        // S'assurer que les effets sont appliqués
+        if (audioContextRef.current && audioContextRef.current.state === "suspended") {
+          audioContextRef.current.resume();
+        } else {
+          // Appliquer l'effet actuel avant de jouer
+          createAudioEffect(formData.voiceFilter);
+        }
+        
+        // Démarrer la lecture (ne pas remettre à zéro)
+        audioPlayerRef.current.play()
+          .then(() => {
+            setIsPlaying(true);
+            
+            // Démarrer l'intervalle pour mettre à jour la progression
+            progressIntervalRef.current = setInterval(() => {
+              if (audioPlayerRef.current) {
+                // Vérifier que les valeurs sont valides
+                const currentTime = audioPlayerRef.current.currentTime || 0;
+                const duration = audioPlayerRef.current.duration || audioDuration || 1;
+                
+                if (!isNaN(currentTime) && !isNaN(duration) && isFinite(duration) && duration > 0) {
+                  const progress = (currentTime / duration) * 100;
+                  setAudioProgress(Math.min(100, Math.max(0, progress))); // Limiter entre 0 et 100
+                }
+              }
+            }, 100);
+          })
+          .catch(error => {
+            console.error("Erreur lors de la lecture audio:", error);
+          });
+      }
+    }
+  };
+  
+  // Fonction pour supprimer l'enregistrement
+  const deleteRecording = (e) => {
+    // Empêcher la propagation et la soumission du formulaire
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Arrêter la lecture si en cours
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+    }
+    
+    // Nettoyer les effets audio
+    cleanupAudioEffects();
+    
+    // Réinitialiser les états liés à l'audio
+      setAudioURL(null);
+      setAudioBlob(null);
+    setIsRecording(false);
+    setIsPlaying(false);
+    setAudioProgress(0);
+    setAudioDuration(0);
+    setPauseTime(0);
+    setTotalRecordingTime(0);
+    
+    // Réinitialiser l'état du formulaire pour l'audio
+      setFormData({
+        ...formData,
+      voiceFilter: 'normal'
+    });
+    
+    // Nettoyer le MediaRecorder
+    if (mediaRecorderRef.current) {
+      if (mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
+      mediaRecorderRef.current = null;
+    }
+    
+    // Fermer les flux média
+    if (audioStreamRef.current) {
+      audioStreamRef.current.getTracks().forEach(track => track.stop());
+      audioStreamRef.current = null;
+    }
+  };
+  
+  // Fonction pour formater le temps d'enregistrement (MM:SS)
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+  
+  // Fonction pour appliquer un filtre vocal à l'audio
+  const applyVoiceFilter = (filterId, e) => {
+    // Empêcher la propagation et la soumission du formulaire
+    if (e) {
+    e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Enregistrer la position actuelle de l'audio si en cours de lecture
+    let currentTime = 0;
+    let wasPlaying = false;
+    
+    if (audioPlayerRef.current) {
+      currentTime = audioPlayerRef.current.currentTime || 0;
+      wasPlaying = !audioPlayerRef.current.paused;
+    }
+    
+    // Mettre à jour l'état du formulaire avec le nouveau filtre
+    setFormData({
+      ...formData,
+      voiceFilter: filterId
+    });
+    
+    // Arrêter la lecture en cours si elle existe
+    if (isPlaying && audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      setIsPlaying(false);
+      
+      // Arrêter l'intervalle de progression
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    }
+
+    // Après un court délai pour être sûr que l'état est mis à jour
+    setTimeout(() => {
+      try {
+        // Créer et appliquer le nouvel effet audio
+        createAudioEffect(filterId);
+        
+        // Jouer l'audio avec le nouveau filtre si l'audio était en cours de lecture
+        if (audioPlayerRef.current && wasPlaying) {
+          // Restaurer la position précédente
+          audioPlayerRef.current.currentTime = currentTime;
+          
+          // Reprendre la lecture
+          audioPlayerRef.current.play()
+            .then(() => {
+              setIsPlaying(true);
+              
+              // Redémarrer l'intervalle pour mettre à jour la progression
+              if (progressIntervalRef.current) {
+                clearInterval(progressIntervalRef.current);
+              }
+              
+              progressIntervalRef.current = setInterval(() => {
+                if (audioPlayerRef.current) {
+                  // Vérifier que les valeurs sont valides
+                  const currentTime = audioPlayerRef.current.currentTime || 0;
+                  const duration = audioPlayerRef.current.duration || audioDuration || 1;
+                  
+                  if (!isNaN(currentTime) && !isNaN(duration) && isFinite(duration) && duration > 0) {
+                    const progress = (currentTime / duration) * 100;
+                    setAudioProgress(Math.min(100, Math.max(0, progress))); // Limiter entre 0 et 100
+                  }
+                }
+              }, 100);
+            })
+            .catch(error => {
+              console.error("Erreur lors de la reprise de la lecture:", error);
+            });
+        } else {
+          // Même si on ne reprend pas la lecture, mettre à jour la progression pour refléter la position actuelle
+          if (!isNaN(currentTime) && !isNaN(audioDuration) && isFinite(audioDuration) && audioDuration > 0) {
+            const progress = (currentTime / audioDuration) * 100;
+            setAudioProgress(Math.min(100, Math.max(0, progress))); // Limiter entre 0 et 100
+          } else {
+            setAudioProgress(0); // Valeur par défaut en cas de valeurs invalides
+          }
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'application du filtre vocal:", error);
+        toast.error("Erreur lors de l'application du filtre. Veuillez réessayer.");
+      }
+    }, 100);
+  };
+  
+  // Fonction pour nettoyer tous les effets audio
+  const cleanupAudioEffects = () => {
+    try {
+      // Arrêter la lecture si elle est en cours
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        setIsPlaying(false);
+      }
+      
+      // Arrêter l'intervalle de progression
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      
+      // Nettoyer les effets spécifiques avec des intervalles
+      if (audioEffectsRef.current) {
+        // Nettoyer les intervalles d'animation
+        if (audioEffectsRef.current.stereoPanInterval) {
+          clearInterval(audioEffectsRef.current.stereoPanInterval);
+        }
+        if (audioEffectsRef.current.alienFreqInterval) {
+          clearInterval(audioEffectsRef.current.alienFreqInterval);
+        }
+        if (audioEffectsRef.current.formantInterval) {
+          clearInterval(audioEffectsRef.current.formantInterval);
+        }
+        
+        // Déconnecter la source des effets
+        if (audioSourceRef.current) {
+          try {
+            audioSourceRef.current.disconnect();
+          } catch (e) {
+            console.log("Source déjà déconnectée");
+          }
+        }
+        
+        // Déconnecter tous les effets existants
+        Object.values(audioEffectsRef.current).forEach(effect => {
+          if (effect && typeof effect !== 'number' && effect.disconnect) {
+            try {
+              effect.disconnect();
+            } catch (e) {
+              console.log("Effet déjà déconnecté");
+            }
+          }
+        });
+        
+        // Réinitialiser les références des effets
+        audioEffectsRef.current = {};
+      }
+      
+      // Fermer le contexte audio pour libérer les ressources
+      if (audioContextRef.current) {
+        try {
+          audioContextRef.current.close();
+          audioContextRef.current = null;
+        } catch (e) {
+          console.log("Contexte audio déjà fermé");
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors du nettoyage des effets audio:", error);
+    }
+  };
+  
+  // Fonction pour créer et configurer un filtre audio
+  const createAudioEffect = (filterId) => {
+    try {
+      // Nettoyer les anciens effets s'ils existent
+      if (audioContextRef.current) {
+        // Déconnecter la source des effets
+        if (audioSourceRef.current) {
+          try {
+            audioSourceRef.current.disconnect();
+          } catch (e) {
+            console.log("Source déjà déconnectée");
+          }
+        }
+        
+        // Déconnecter tous les effets existants
+        Object.values(audioEffectsRef.current).forEach(effect => {
+          if (effect && effect.disconnect) {
+            try {
+              effect.disconnect();
+            } catch (e) {
+              console.log("Effet déjà déconnecté");
+            }
+          }
+        });
+        
+        // Réinitialiser les références des effets
+        audioEffectsRef.current = {};
+      } else {
+        // Créer un nouveau contexte audio si aucun n'existe
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioContextRef.current = new AudioContext();
+      }
+      
+      // S'assurer que l'élément audio existe avant de créer la source
+      if (!audioPlayerRef.current && audioURL) {
+        audioPlayerRef.current = new Audio(audioURL);
+        audioPlayerRef.current.onended = () => {
+          setIsPlaying(false);
+        };
+      }
+      
+      // Créer une nouvelle source audio
+      if (audioPlayerRef.current) {
+        try {
+          audioSourceRef.current = audioContextRef.current.createMediaElementSource(audioPlayerRef.current);
+        } catch (error) {
+          // Si la source existe déjà, ignorer cette erreur
+          console.log("Source déjà créée");
+          
+          // Vérifions si la source est déjà connectée
+          if (!audioSourceRef.current) {
+            console.error("Source audio non disponible après erreur", error);
+            return false;
+          }
+        }
+      } else {
+        console.error("Pas de lecteur audio disponible");
+        return false;
+      }
+      
+      // Vérifier que le lecteur audio est disponible
+      if (!audioPlayerRef.current) {
+        console.error("Pas de lecteur audio disponible");
+        return false;
+      }
+        
+      // Configurer les effets en fonction du filtre sélectionné
+      switch (filterId) {
+        case "robot":
+          // Effet robot avec distorsion et modulateur en anneau
+          const oscillator = audioContextRef.current.createOscillator();
+          const gain = audioContextRef.current.createGain();
+          const distortion = audioContextRef.current.createWaveShaper();
+          
+          // Fonction de distorsion
+          function makeDistortionCurve(amount) {
+            const k = typeof amount === 'number' ? amount : 50;
+            const n_samples = audioContextRef.current.sampleRate;
+            const curve = new Float32Array(n_samples);
+            const deg = Math.PI / 180;
+            
+            for (let i = 0; i < n_samples; ++i) {
+              const x = i * 2 / n_samples - 1;
+              curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+            }
+            return curve;
+          }
+          
+          distortion.curve = makeDistortionCurve(400);
+          distortion.oversample = '4x';
+          
+          oscillator.frequency.value = 50;
+          oscillator.type = 'square';
+          gain.gain.value = 0.2;
+          
+          oscillator.connect(gain);
+          audioSourceRef.current.connect(distortion);
+          distortion.connect(audioContextRef.current.destination);
+          gain.connect(audioContextRef.current.destination);
+          
+          oscillator.start();
+          
+          audioEffectsRef.current = {
+            oscillator,
+            gain,
+            distortion
+          };
+          break;
+          
+        case "grave":
+          // Effet voix grave avec pitch shifter, distorsion et réverbération
+          const lowPassFilter = audioContextRef.current.createBiquadFilter();
+          lowPassFilter.type = "lowpass";
+          lowPassFilter.frequency.value = 300; // Fréquence de coupure plus basse
+          lowPassFilter.Q.value = 2;
+          
+          const bassBoost = audioContextRef.current.createBiquadFilter();
+          bassBoost.type = "lowshelf";
+          bassBoost.frequency.value = 150;
+          bassBoost.gain.value = 20; // Amplification plus forte des basses
+          
+          // Ajout d'une distorsion légère pour masquer davantage la voix
+          const graveDistortion = audioContextRef.current.createWaveShaper();
+          function makeGraveDistortion() {
+            const samples = audioContextRef.current.sampleRate;
+            const curve = new Float32Array(samples);
+            for (let i = 0; i < samples; ++i) {
+              const x = i * 2 / samples - 1;
+              // Distorsion douce mais efficace
+              curve[i] = (Math.PI + 5) * x / (Math.PI + 5 * Math.abs(x));
+            }
+            return curve;
+          }
+          graveDistortion.curve = makeGraveDistortion();
+          graveDistortion.oversample = '4x';
+          
+          // Ajout d'une réverbération simulée avec un délai
+          const graveDelay = audioContextRef.current.createDelay();
+          graveDelay.delayTime.value = 0.03; // Délai très court
+          
+          const feedbackGain = audioContextRef.current.createGain();
+          feedbackGain.gain.value = 0.15; // Niveau de feedback pour la réverbération
+          
+          // Connecter les effets
+          audioSourceRef.current.connect(lowPassFilter);
+          lowPassFilter.connect(bassBoost);
+          bassBoost.connect(graveDistortion);
+          
+          // Créer la boucle de réverbération
+          graveDistortion.connect(audioContextRef.current.destination);
+          graveDistortion.connect(graveDelay);
+          graveDelay.connect(feedbackGain);
+          feedbackGain.connect(graveDelay);
+          feedbackGain.connect(audioContextRef.current.destination);
+          
+          audioEffectsRef.current = {
+            lowPassFilter,
+            bassBoost,
+            graveDistortion,
+            graveDelay,
+            feedbackGain
+          };
+          break;
+          
+        case "aiguë":
+          // Effet voix aiguë avec pitch shifter et modulation
+          const highPassFilter = audioContextRef.current.createBiquadFilter();
+          highPassFilter.type = "highpass";
+          highPassFilter.frequency.value = 1200; // Filtre plus agressif
+          highPassFilter.Q.value = 3; // Plus de résonance
+          
+          const trebleBoost = audioContextRef.current.createBiquadFilter();
+          trebleBoost.type = "highshelf";
+          trebleBoost.frequency.value = 2500;
+          trebleBoost.gain.value = 25; // Accentuation plus forte des aigus
+          
+          // Ajout d'un modulateur de fréquence pour rendre la voix moins reconnaissable
+          const aigueOscillator = audioContextRef.current.createOscillator();
+          aigueOscillator.type = 'sine';
+          aigueOscillator.frequency.value = 6; // Modulation rapide mais pas trop
+          
+          const aigueModulationGain = audioContextRef.current.createGain();
+          aigueModulationGain.gain.value = 0.005; // Subtil mais efficace
+          
+          // Effet stéréo pour rendre la voix plus large et moins naturelle
+          const stereoPanner = audioContextRef.current.createStereoPanner();
+          
+          // Effet "brillant" pour donner un côté artificiel
+          const brillanceFilter = audioContextRef.current.createBiquadFilter();
+          brillanceFilter.type = "peaking";
+          brillanceFilter.frequency.value = 4000;
+          brillanceFilter.Q.value = 8;
+          brillanceFilter.gain.value = 15;
+          
+          // Compresseur pour uniformiser le son et le rendre moins naturel
+          const compressor = audioContextRef.current.createDynamicsCompressor();
+          compressor.threshold.value = -25;
+          compressor.ratio.value = 12;
+          compressor.attack.value = 0;
+          compressor.release.value = 0.3;
+          
+          // Connecter les effets
+          audioSourceRef.current.connect(highPassFilter);
+          highPassFilter.connect(trebleBoost);
+          trebleBoost.connect(brillanceFilter);
+          brillanceFilter.connect(stereoPanner);
+          stereoPanner.connect(compressor);
+          compressor.connect(audioContextRef.current.destination);
+          
+          // Connecter l'oscillateur pour la modulation
+          aigueOscillator.connect(aigueModulationGain);
+          aigueModulationGain.connect(stereoPanner.pan);
+          
+          // Démarrer l'oscillateur
+          aigueOscillator.start();
+          
+          // Animation du panoramique stéréo pour un effet plus dynamique
+          let direction = 1;
+          const stereoPanInterval = setInterval(() => {
+            stereoPanner.pan.value = stereoPanner.pan.value + (0.05 * direction);
+            if (Math.abs(stereoPanner.pan.value) > 0.9) {
+              direction *= -1;
+            }
+          }, 100);
+          
+          audioEffectsRef.current = {
+            highPassFilter,
+            trebleBoost,
+            aigueOscillator,
+            aigueModulationGain,
+            stereoPanner,
+            brillanceFilter,
+            compressor,
+            stereoPanInterval // Pour pouvoir le nettoyer plus tard
+          };
+          
+          // Nettoyer l'intervalle lorsque l'effet est arrêté
+          audioPlayerRef.current.addEventListener('ended', () => {
+            if (audioEffectsRef.current.stereoPanInterval) {
+              clearInterval(audioEffectsRef.current.stereoPanInterval);
+            }
+          }, { once: true });
+          break;
+          
+        case "alien":
+          // Effet alien vraiment extraterrestre
+          
+          // Filtres multiples pour un son très différent
+          const bandpassA = audioContextRef.current.createBiquadFilter();
+          bandpassA.type = "bandpass";
+          bandpassA.frequency.value = 1800;
+          bandpassA.Q.value = 12; // Plus prononcé
+          
+          const bandpassB = audioContextRef.current.createBiquadFilter();
+          bandpassB.type = "bandpass";
+          bandpassB.frequency.value = 3200;
+          bandpassB.Q.value = 8;
+          
+          // Distorsion extrême
+          const alienDistortion = audioContextRef.current.createWaveShaper();
+          function createAlienDistortion() {
+            const samples = audioContextRef.current.sampleRate;
+            const curve = new Float32Array(samples);
+            for (let i = 0; i < samples; ++i) {
+              const x = i * 2 / samples - 1;
+              // Formule de distorsion non-linéaire complexe
+              if (x === 0) {
+                curve[i] = 0;
+              } else {
+                // Combinaison de fonctions pour un son "non-terrestre"
+                curve[i] = (Math.tan(Math.PI * x / 2) + Math.sin(Math.PI * x)) / 2;
+              }
+            }
+            return curve;
+          }
+          alienDistortion.curve = createAlienDistortion();
+          alienDistortion.oversample = '4x';
+          
+          // Ajout de modulations complexes
+          const alienOscillator1 = audioContextRef.current.createOscillator();
+          alienOscillator1.type = 'sawtooth';
+          alienOscillator1.frequency.value = 14;
+          
+          const alienOscillator2 = audioContextRef.current.createOscillator();
+          alienOscillator2.type = 'square';
+          alienOscillator2.frequency.value = 5.3;
+          
+          const alienGain1 = audioContextRef.current.createGain();
+          alienGain1.gain.value = 0.3;
+          
+          const alienGain2 = audioContextRef.current.createGain();
+          alienGain2.gain.value = 0.2;
+          
+          // Multiples délais pour créer un effet de résonance étrange
+          const alienDelay1 = audioContextRef.current.createDelay();
+          alienDelay1.delayTime.value = 0.13;
+          
+          const alienDelay2 = audioContextRef.current.createDelay();
+          alienDelay2.delayTime.value = 0.27;
+          
+          const alienFeedback = audioContextRef.current.createGain();
+          alienFeedback.gain.value = 0.4;
+          
+          // Modulation de fréquence sur les filtres
+          const alienModulationGain = audioContextRef.current.createGain();
+          alienModulationGain.gain.value = 100; // Pour une modulation importante
+          
+          // Connecter les oscillateurs pour moduler les fréquences des filtres
+          alienOscillator1.connect(alienGain1);
+          alienGain1.connect(alienModulationGain);
+          alienModulationGain.connect(bandpassA.frequency);
+          
+          alienOscillator2.connect(alienGain2);
+          alienGain2.connect(bandpassB.detune); // Modulation de l'accordage
+          
+          // Chaîne principale
+          audioSourceRef.current.connect(bandpassA);
+          bandpassA.connect(bandpassB);
+          bandpassB.connect(alienDistortion);
+          
+          // Système de délais parallèles
+          alienDistortion.connect(alienDelay1);
+          alienDistortion.connect(alienDelay2);
+          alienDistortion.connect(audioContextRef.current.destination); // Son direct
+          
+          alienDelay1.connect(alienFeedback);
+          alienFeedback.connect(alienDelay2);
+          alienDelay2.connect(alienFeedback);
+          alienDelay1.connect(audioContextRef.current.destination);
+          alienDelay2.connect(audioContextRef.current.destination);
+          
+          // Démarrer les oscillateurs
+          alienOscillator1.start();
+          alienOscillator2.start();
+          
+          // Animation des fréquences pour un effet qui évolue
+          let freqDirection = 1;
+          const alienFreqInterval = setInterval(() => {
+            bandpassA.frequency.value += 40 * freqDirection;
+            if (bandpassA.frequency.value > 2800 || bandpassA.frequency.value < 1000) {
+              freqDirection *= -1;
+            }
+          }, 80);
+          
+          audioEffectsRef.current = {
+            bandpassA,
+            bandpassB,
+            alienDistortion,
+            alienOscillator1,
+            alienOscillator2,
+            alienGain1,
+            alienGain2,
+            alienDelay1,
+            alienDelay2,
+            alienFeedback,
+            alienModulationGain,
+            alienFreqInterval
+          };
+          
+          // Nettoyer l'intervalle
+          audioPlayerRef.current.addEventListener('ended', () => {
+            if (audioEffectsRef.current.alienFreqInterval) {
+              clearInterval(audioEffectsRef.current.alienFreqInterval);
+            }
+          }, { once: true });
+          break;
+          
+        case "anonyme":
+          // Effet voix anonyme ultra-sécurisé - impossible à reconnaître
+          
+          // Mélange de plusieurs techniques d'anonymisation vocale
+          
+          // 1. Forte distorsion pour altérer le timbre
+          const anonymousDistortion = audioContextRef.current.createWaveShaper();
+          
+          function createAnonymousDistortion() {
+            const n_samples = audioContextRef.current.sampleRate;
+            const curve = new Float32Array(n_samples);
+            
+            for (let i = 0; i < n_samples; ++i) {
+              const x = i * 2 / n_samples - 1;
+              // Fonction de transformation fortement non-linéaire
+              curve[i] = Math.tanh(5 * x) * Math.cos(x * 6) * (0.5 + 0.5 * Math.sin(x * 3.14));
+            }
+            return curve;
+          }
+          
+          anonymousDistortion.curve = createAnonymousDistortion();
+          anonymousDistortion.oversample = '4x';
+          
+          // 2. Altération des formants vocaux (fréquences qui identifient une voix)
+          const formantShifterHigh = audioContextRef.current.createBiquadFilter();
+          formantShifterHigh.type = "peaking";
+          formantShifterHigh.frequency.value = 2400;
+          formantShifterHigh.Q.value = 7;
+          formantShifterHigh.gain.value = -24; // Forte réduction
+          
+          const formantShifterMid = audioContextRef.current.createBiquadFilter();
+          formantShifterMid.type = "peaking";
+          formantShifterMid.frequency.value = 1800;
+          formantShifterMid.Q.value = 5;
+          formantShifterMid.gain.value = 15; // Boost
+          
+          const formantShifterLow = audioContextRef.current.createBiquadFilter();
+          formantShifterLow.type = "peaking";
+          formantShifterLow.frequency.value = 500;
+          formantShifterLow.Q.value = 4;
+          formantShifterLow.gain.value = -10;
+          
+          // 3. Bruit de masquage léger
+          const noiseNode = audioContextRef.current.createBufferSource();
+          const sampleRate = audioContextRef.current.sampleRate;
+          const noiseBuffer = audioContextRef.current.createBuffer(1, sampleRate, sampleRate);
+          const noiseData = noiseBuffer.getChannelData(0);
+          
+          // Générer un bruit blanc à faible niveau
+          for (let i = 0; i < noiseData.length; i++) {
+            noiseData[i] = Math.random() * 0.1 - 0.05; // Bruit de -0.05 à 0.05
+          }
+          
+          noiseNode.buffer = noiseBuffer;
+          noiseNode.loop = true;
+          
+          const noiseGain = audioContextRef.current.createGain();
+          noiseGain.gain.value = 0.04; // Très léger, juste pour masquer
+          
+          // 4. Modulation de hauteur pour brouiller la reconnaissance
+          const anonymeOscillator = audioContextRef.current.createOscillator();
+          anonymeOscillator.type = 'triangle';
+          anonymeOscillator.frequency.value = 8; // 8 Hz
+          
+          const anonymeModulationGain = audioContextRef.current.createGain();
+          anonymeModulationGain.gain.value = 0.004;
+          
+          // 5. Réverbération artificielle pour brouiller davantage
+          const convolver = audioContextRef.current.createConvolver();
+          const convolverBuffer = audioContextRef.current.createBuffer(2, sampleRate, sampleRate);
+          const convolverDataL = convolverBuffer.getChannelData(0);
+          const convolverDataR = convolverBuffer.getChannelData(1);
+          
+          // Créer une réponse impulsionnelle artificielle
+          for (let i = 0; i < convolverDataL.length; i++) {
+            // Décroissance exponentielle pour simulation de réverbération
+            const decay = Math.exp(-4.0 * i / convolverDataL.length);
+            convolverDataL[i] = (Math.random() * 2 - 1) * decay;
+            convolverDataR[i] = (Math.random() * 2 - 1) * decay;
+          }
+          
+          convolver.buffer = convolverBuffer;
+          
+          // 6. Plusieurs délais pour désynchroniser la voix
+          const anonymeDelay1 = audioContextRef.current.createDelay();
+          anonymeDelay1.delayTime.value = 0.08;
+          
+          const anonymeDelay2 = audioContextRef.current.createDelay();
+          anonymeDelay2.delayTime.value = 0.2;
+          
+          const anonymeFeedbackGain = audioContextRef.current.createGain();
+          anonymeFeedbackGain.gain.value = 0.3;
+          
+          // Connecter tous les nœuds
+          
+          // Chaîne principale d'effets
+          audioSourceRef.current.connect(anonymousDistortion);
+          anonymousDistortion.connect(formantShifterLow);
+          formantShifterLow.connect(formantShifterMid);
+          formantShifterMid.connect(formantShifterHigh);
+          
+          // Diviser en plusieurs chemins parallèles
+          formantShifterHigh.connect(anonymeDelay1);
+          formantShifterHigh.connect(anonymeDelay2);
+          formantShifterHigh.connect(convolver);
+          formantShifterHigh.connect(audioContextRef.current.destination);
+          
+          // Chemins de délai avec feedback
+          anonymeDelay1.connect(anonymeFeedbackGain);
+          anonymeFeedbackGain.connect(anonymeDelay2);
+          anonymeDelay2.connect(anonymeFeedbackGain);
+          
+          anonymeDelay1.connect(audioContextRef.current.destination);
+          anonymeDelay2.connect(audioContextRef.current.destination);
+          
+          // Connecter le bruit de masquage
+          noiseNode.connect(noiseGain);
+          noiseGain.connect(audioContextRef.current.destination);
+          
+          // Connecter la modulation de hauteur
+          anonymeOscillator.connect(anonymeModulationGain);
+          anonymeModulationGain.connect(formantShifterHigh.detune); // Modulation sur le détune
+          
+          // Démarrer les sources audio
+          noiseNode.start();
+          anonymeOscillator.start();
+          
+          // Animation des formants pour éviter la reconnaissance
+          const formantInterval = setInterval(() => {
+            // Faire varier les fréquences formantiques pour brouiller l'identité vocale
+            formantShifterMid.frequency.value = 1800 + Math.sin(Date.now() * 0.001) * 200;
+            formantShifterHigh.Q.value = 7 + Math.sin(Date.now() * 0.002) * 2;
+          }, 100);
+          
+          audioEffectsRef.current = {
+            anonymousDistortion,
+            formantShifterHigh,
+            formantShifterMid,
+            formantShifterLow,
+            noiseNode,
+            noiseGain,
+            anonymeOscillator,
+            anonymeModulationGain,
+            convolver,
+            anonymeDelay1,
+            anonymeDelay2,
+            anonymeFeedbackGain,
+            formantInterval
+          };
+          
+          // Nettoyer l'intervalle
+          audioPlayerRef.current.addEventListener('ended', () => {
+            if (audioEffectsRef.current.formantInterval) {
+              clearInterval(audioEffectsRef.current.formantInterval);
+            }
+          }, { once: true });
+          break;
+          
+        case "normal":
+        default:
+          // Pas d'effet, connexion directe
+          audioSourceRef.current.connect(audioContextRef.current.destination);
+          break;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Erreur lors de la création du filtre audio:", error);
+      return false;
+    }
+  };
+  
+  // Rendu du composant SendMessageContent
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Le contenu existant du composant */}
+    </div>
+  );
+}
+
+// Composant principal qui enveloppe le contenu dans Suspense
+export default function SendMessage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+      <SearchParamsWrapper />
+    </Suspense>
+  );
+}

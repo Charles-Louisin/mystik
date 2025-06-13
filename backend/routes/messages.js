@@ -4,12 +4,56 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
+const { processImage } = require('../utils/imageProcessor');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+const { processVoice } = require('../utils/voiceProcessor');
+const mongoose = require('mongoose');
+
+// Configuration de multer pour les fichiers audio
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'voice-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+// Importer l'utilitaire pour vérifier les types MIME audio
+const { isAudioMimeType } = require('../utils/mimeTypes');
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  fileFilter: (req, file, cb) => {
+    console.log('Type MIME du fichier téléchargé:', file.mimetype);
+    
+    if (isAudioMimeType(file.mimetype)) {
+      cb(null, true);
+    } else {
+      console.error('Type de fichier non autorisé:', file.mimetype);
+      cb(new Error(`Seuls les fichiers audio sont acceptés. Type reçu: ${file.mimetype}`), false);
+    }
+  }
+});
 
 // @route   POST /api/messages/send
 // @desc    Send an anonymous message
 // @access  Public
-router.post('/send', async (req, res) => {
+router.post('/send', upload.single('voiceMessage'), async (req, res) => {
   try {
+    console.log('Réception de requête POST /api/messages/send');
+    console.log('Type de contenu:', req.headers['content-type']);
+    console.log('Corps de la requête:', req.body);
+    console.log('Fichier reçu:', req.file ? req.file.filename : 'Aucun fichier');
+    
     const { 
       recipientLink, 
       content, 
@@ -69,7 +113,8 @@ router.post('/send', async (req, res) => {
     // Créer le message
     const newMessage = new Message({
       recipient: recipient._id,
-      content,
+      recipientLink: recipientLink,
+      content: content,
       sender: {
         nickname: nickname || 'Anonyme',
         ipAddress: req.ip,
@@ -77,7 +122,10 @@ router.post('/send', async (req, res) => {
           country: req.body.country || 'Inconnu',
           city: req.body.city || 'Inconnue'
         },
-        realUser: sendAsAuthenticated ? authenticatedUserId : (realUserId || null),
+        userId: sendAsAuthenticated && authenticatedUserId ? 
+          new mongoose.Types.ObjectId(authenticatedUserId) : 
+          (realUserId ? new mongoose.Types.ObjectId(realUserId) : null),
+        realUser: !!(sendAsAuthenticated && authenticatedUserId) || !!(realUserId),
         partialInfo: {
           firstLetter: nickname ? nickname.charAt(0) : 'A'
         }
@@ -131,6 +179,18 @@ router.post('/send', async (req, res) => {
       hint: hint || 'Non défini'
     });
 
+    // Ajouter le message vocal s'il existe
+    if (req.file) {
+      const voiceFilter = req.body.voiceFilter || 'normal';
+      console.log("Fichier audio reçu:", req.file.filename);
+      console.log("Filtre vocal:", voiceFilter);
+      
+      // Ajouter les informations du fichier audio au message selon le schéma existant
+      newMessage.hasVoiceMessage = true;
+      newMessage.voiceMessagePath = req.file.path;
+      newMessage.voiceFilter = voiceFilter;
+    }
+
     // Sauvegarder le message
     await newMessage.save();
 
@@ -141,11 +201,31 @@ router.post('/send', async (req, res) => {
         emotionalFilter: selectedEmotionalFilter,
         hasEmoji: !!emoji,
         hasHint: !!hint,
-        hasRiddle: !!(riddle && riddle.question && riddle.answer)
+        hasRiddle: !!(riddle && riddle.question && riddle.answer),
+        hasVoiceMessage: !!req.file
       }
     });
   } catch (err) {
-    console.error("Erreur d'envoi de message:", err.message);
+    console.error("Erreur d'envoi de message:", err);
+    
+    // Afficher plus de détails sur l'erreur pour le débogage
+    if (err.name === 'ValidationError') {
+      const validationErrors = {};
+      
+      // Extraire les messages d'erreur spécifiques
+      for (const field in err.errors) {
+        validationErrors[field] = err.errors[field].message;
+      }
+      
+      console.error("Erreurs de validation:", validationErrors);
+      
+      return res.status(400).json({ 
+        msg: 'Erreur de validation des données', 
+        errors: validationErrors,
+        error: err.message
+      });
+    }
+    
     res.status(500).json({ 
       msg: 'Erreur serveur', 
       error: err.message 
@@ -173,7 +253,7 @@ router.get('/received', auth, async (req, res) => {
        const processedMessage = message.toObject();
        
        // Ajouter une info si le message vient d'un utilisateur inscrit
-       const hasRealUser = !!processedMessage.sender.realUser;
+       const hasRealUser = processedMessage.sender.realUser;
        
        // Si l'identité a été révélée et le nom découvert, s'assurer que le nom est visible
        if (processedMessage.sender.identityRevealed && processedMessage.sender.nameDiscovered) {
@@ -770,12 +850,12 @@ router.post('/:id/notify-sender', auth, async (req, res) => {
     }
 
     // Vérifier si l'expéditeur est un utilisateur enregistré
-    if (!message.sender.realUser) {
+    if (!message.sender.realUser || !message.sender.userId) {
       return res.status(400).json({ msg: "L'expéditeur n'est pas un utilisateur enregistré" });
     }
 
     // Trouver l'expéditeur dans la base de données
-    const sender = await User.findById(message.sender.realUser);
+    const sender = await User.findById(message.sender.userId);
     
     if (!sender) {
       return res.status(404).json({ msg: 'Expéditeur non trouvé' });
@@ -854,7 +934,7 @@ router.post('/:id/check-user-guess', auth, async (req, res) => {
     }
     
     // Vérifier si le message a un expéditeur réel
-    if (!message.sender.realUser) {
+    if (!message.sender.realUser || !message.sender.userId) {
       return res.json({ 
         correct: false, 
         message: "Ce message n'a pas été envoyé par un utilisateur inscrit."
@@ -864,7 +944,7 @@ router.post('/:id/check-user-guess', auth, async (req, res) => {
     // Logs pour le débogage
     console.log("Vérification de l'utilisateur:");
     console.log("- Nom d'utilisateur soumis:", username);
-    console.log("- ID de l'expéditeur réel:", message.sender.realUser);
+    console.log("- ID de l'expéditeur réel:", message.sender.userId);
     
     // Normaliser le nom d'utilisateur
     const normalizedUsername = username.trim().toLowerCase().replace(/\s+/g, '');
@@ -908,7 +988,7 @@ router.post('/:id/check-user-guess', auth, async (req, res) => {
     }
     
     // Vérifier si l'utilisateur deviné correspond à l'expéditeur réel
-    const correct = message.sender.realUser.toString() === guessedUser._id.toString();
+    const correct = message.sender.userId.toString() === guessedUser._id.toString();
     console.log("- Correspondance:", correct);
     
     if (correct) {
@@ -1448,7 +1528,7 @@ router.get('/:id/hints', auth, async (req, res) => {
     const message = await Message.findOne({ 
       _id: req.params.id,
       recipient: req.user.id
-    }).populate('sender.realUser', 'username');
+    }).populate('sender.userId', 'username');
     
     if (!message) {
       return res.status(404).json({ msg: 'Message non trouvé' });
@@ -1550,12 +1630,12 @@ router.patch('/:id/user-discovered', auth, async (req, res) => {
     }
     
     // Vérifier si l'expéditeur a un compte utilisateur lié
-    if (!message.sender.realUser) {
+    if (!message.sender.realUser || !message.sender.userId) {
       return res.status(400).json({ msg: 'Ce message n\'a pas été envoyé par un utilisateur inscrit' });
     }
     
     // Trouver l'utilisateur correspondant
-    const senderUser = await User.findById(message.sender.realUser);
+    const senderUser = await User.findById(message.sender.userId);
     
     if (!senderUser) {
       return res.status(404).json({ msg: 'Utilisateur expéditeur non trouvé' });
@@ -1582,6 +1662,335 @@ router.patch('/:id/user-discovered', auth, async (req, res) => {
       msg: 'Erreur serveur', 
       error: err.message 
     });
+  }
+});
+
+// Route pour envoyer un message avec audio
+router.post('/send-with-audio', upload.single('voiceMessage'), async (req, res) => {
+  try {
+    // Extraire les données JSON du formulaire
+    const messageData = JSON.parse(req.body.data);
+    
+    // Récupérer le fichier audio
+    const audioFile = req.file;
+    if (!audioFile) {
+      return res.status(400).json({ msg: 'Aucun fichier audio fourni' });
+    }
+    
+    // Validation de base du contenu
+    if (!messageData.content || messageData.content.trim().length < 5) {
+      return res.status(400).json({ msg: 'Le message doit contenir au moins 5 caractères' });
+    }
+    
+    // Vérifier l'authentification si l'utilisateur veut envoyer en tant qu'utilisateur connecté
+    let authenticatedUserId = null;
+    if (messageData.sendAsAuthenticated) {
+      // Vérifier si l'en-tête d'autorisation est présent
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ msg: 'Authentification requise pour cette option' });
+      }
+
+      // Extraire et vérifier le token
+      const token = authHeader.substring(7); // Enlever "Bearer "
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        authenticatedUserId = decoded.user.id;
+        
+        // Vérifier que l'ID utilisateur fourni correspond à l'utilisateur authentifié
+        if (messageData.realUserId && messageData.realUserId !== authenticatedUserId) {
+          return res.status(401).json({ msg: 'ID utilisateur non autorisé' });
+        }
+      } catch (error) {
+        return res.status(401).json({ msg: 'Token non valide' });
+      }
+    }
+    
+    // Trouver le destinataire par son lien unique
+    const recipient = await User.findOne({ uniqueLink: messageData.recipientLink });
+    if (!recipient) {
+      return res.status(404).json({ msg: 'Destinataire non trouvé' });
+    }
+    
+    // Chemin du fichier audio original
+    const originalFilePath = audioFile.path;
+    
+    // Générer un nom pour le fichier audio traité
+    const processedFileName = 'processed-' + path.basename(audioFile.path);
+    const processedFilePath = path.join(path.dirname(audioFile.path), processedFileName);
+    
+    // Appliquer le filtre vocal
+    await processVoice(originalFilePath, processedFilePath, messageData.voiceFilter || 'normal');
+    
+    // Vérifier que l'emotionalFilter est valide
+    const validEmotionalFilters = ['amour', 'colère', 'admiration', 'regret', 'joie', 'tristesse', 'neutre'];
+    const selectedEmotionalFilter = messageData.emotionalFilter && validEmotionalFilters.includes(messageData.emotionalFilter) 
+      ? messageData.emotionalFilter 
+      : 'neutre';
+    
+    // Créer le message
+    const newMessage = new Message({
+      recipient: recipient._id,
+      recipientLink: messageData.recipientLink,
+      content: messageData.content,
+      sender: {
+        nickname: messageData.nickname || 'Anonyme',
+        ipAddress: req.ip,
+        location: {
+          country: messageData.country || 'Inconnu',
+          city: messageData.city || 'Inconnue'
+        },
+        userId: messageData.sendAsAuthenticated && authenticatedUserId ? 
+          new mongoose.Types.ObjectId(authenticatedUserId) : 
+          (messageData.realUserId ? new mongoose.Types.ObjectId(messageData.realUserId) : null),
+        realUser: !!(messageData.sendAsAuthenticated && authenticatedUserId) || !!(messageData.realUserId),
+        partialInfo: {
+          firstLetter: messageData.nickname ? messageData.nickname.charAt(0) : 'A'
+        }
+      },
+      emotionalFilter: selectedEmotionalFilter,
+      clues: {
+        hint: messageData.hint || null,
+        emoji: messageData.emoji || null,
+        riddle: messageData.riddle && messageData.riddle.question && messageData.riddle.answer ? {
+          question: messageData.riddle.question,
+          answer: messageData.riddle.answer
+        } : null
+      },
+      customMask: messageData.customMask || null,
+      hasVoiceMessage: true,
+      voiceMessagePath: processedFilePath,
+      voiceFilter: messageData.voiceFilter || 'normal'
+    });
+    
+    // Ajouter la condition de révélation si définie
+    if (messageData.revealCondition && messageData.revealCondition.type) {
+      const validRevealTypes = ['devinette', 'mini-jeu', 'défi', 'paiement', 'clé', 'aucune'];
+      if (validRevealTypes.includes(messageData.revealCondition.type)) {
+        newMessage.revealCondition = {
+          type: messageData.revealCondition.type,
+          details: messageData.revealCondition.details || {},
+          completed: false
+        };
+      }
+    }
+
+    // Ajouter la planification si définie
+    if (messageData.scheduledDate) {
+      try {
+        const revealDate = new Date(messageData.scheduledDate);
+        if (revealDate > new Date()) {
+          newMessage.scheduled = {
+            isScheduled: true,
+            revealDate
+          };
+        }
+      } catch (error) {
+        console.error("Erreur de format de date:", error);
+      }
+    }
+    
+    // Enregistrer les données pour le débogage
+    console.log("Message audio créé:", {
+      recipientId: recipient._id,
+      content: messageData.content.substring(0, 20) + "...",
+      nickname: messageData.nickname || 'Anonyme',
+      emotionalFilter: selectedEmotionalFilter,
+      voiceFilter: messageData.voiceFilter || 'normal'
+    });
+    
+    // Sauvegarder le message
+    await newMessage.save();
+    
+    // Supprimer le fichier audio original après traitement
+    try {
+    fs.unlinkSync(originalFilePath);
+    } catch (err) {
+      console.error("Erreur lors de la suppression du fichier original:", err);
+    }
+    
+    res.json({
+      messageId: newMessage._id,
+      success: true,
+      details: {
+        emotionalFilter: selectedEmotionalFilter,
+        voiceFilter: messageData.voiceFilter || 'normal',
+        hasEmoji: !!messageData.emoji,
+        hasHint: !!messageData.hint,
+        hasRiddle: !!(messageData.riddle && messageData.riddle.question && messageData.riddle.answer)
+      }
+    });
+  } catch (err) {
+    console.error('Erreur lors de l\'envoi du message avec audio:', err);
+    // Afficher plus de détails sur l'erreur pour le débogage
+    if (err.name === 'ValidationError') {
+      const validationErrors = {};
+      
+      // Extraire les messages d'erreur spécifiques
+      for (const field in err.errors) {
+        validationErrors[field] = err.errors[field].message;
+      }
+      
+      console.error("Erreurs de validation:", validationErrors);
+      console.error("Message complet:", JSON.stringify(messageData, null, 2));
+      console.error("Format du message:", {
+        recipientId: typeof recipient._id,
+        recipientLink: typeof messageData.recipientLink,
+        content: typeof messageData.content,
+        realUser: typeof authenticatedUserId
+      });
+      
+      return res.status(400).json({ 
+        msg: 'Erreur de validation des données', 
+        errors: validationErrors,
+        error: err.message
+      });
+    }
+    
+    res.status(500).json({ 
+      msg: 'Erreur serveur', 
+      error: err.message 
+    });
+  }
+});
+
+// Route pour récupérer un message audio
+router.get('/:id/voice-message', async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.id);
+    
+    if (!message) {
+      return res.status(404).json({ msg: 'Message non trouvé' });
+    }
+    
+    // Vérifier que le message a un fichier audio
+    if (!message.hasVoiceMessage || !message.voiceMessagePath) {
+      return res.status(404).json({ msg: 'Ce message ne contient pas de fichier audio' });
+    }
+    
+    // Vérifier que le fichier existe
+    if (!fs.existsSync(message.voiceMessagePath)) {
+      console.error(`Fichier audio non trouvé: ${message.voiceMessagePath}`);
+      return res.status(404).json({ msg: 'Fichier audio non trouvé' });
+    }
+    
+    // Créer une copie temporaire du fichier avec une extension .wav si nécessaire
+    const fileName = path.basename(message.voiceMessagePath);
+    const hasExtension = fileName.includes('.');
+    let tempFilePath = message.voiceMessagePath;
+    
+    if (!hasExtension) {
+      // Créer un répertoire temporaire sans espaces si nécessaire
+      const tempDir = path.join(__dirname, '../temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      // Générer un nom de fichier temporaire sans espaces et avec extension .wav
+      const tempFileName = `temp_${Date.now()}_${fileName}.wav`;
+      tempFilePath = path.join(tempDir, tempFileName);
+      
+      // Copier le fichier original vers le fichier temporaire
+      fs.copyFileSync(message.voiceMessagePath, tempFilePath);
+      
+      console.log(`Fichier temporaire créé: ${tempFilePath}`);
+    }
+    
+    // Définir les en-têtes CORS spécifiques pour les fichiers audio
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Définir les en-têtes de cache pour améliorer les performances
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    
+    // Déterminer le type MIME en fonction de l'extension du fichier
+    const contentType = 'audio/wav';
+    res.setHeader('Content-Type', contentType);
+    
+    // Ajouter des en-têtes pour éviter les problèmes CORS avec les fichiers audio
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    
+    console.log(`Envoi du fichier audio: ${tempFilePath} avec le type MIME: ${contentType}`);
+    
+    // Envoyer le fichier audio
+    res.sendFile(tempFilePath, (err) => {
+      // Supprimer le fichier temporaire après l'envoi si on en a créé un
+      if (!hasExtension && fs.existsSync(tempFilePath)) {
+        try {
+          fs.unlinkSync(tempFilePath);
+          console.log(`Fichier temporaire supprimé: ${tempFilePath}`);
+        } catch (cleanupErr) {
+          console.error(`Erreur lors de la suppression du fichier temporaire: ${cleanupErr}`);
+        }
+      }
+      
+      if (err) {
+        console.error(`Erreur lors de l'envoi du fichier: ${err}`);
+      }
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération du message audio:', error);
+    res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+// Importer l'utilitaire de types MIME
+const { getAudioMimeType } = require('../utils/mimeTypes');
+
+// @route   GET /api/messages/voice-message/:filename
+// @desc    Stream a voice message audio file with proper CORS headers
+// @access  Public (with optional authentication)
+router.get('/voice-message/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    
+    // Vérifier que le nom de fichier est valide pour éviter les attaques de traversée de répertoire
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ msg: 'Nom de fichier non valide' });
+    }
+    
+    // Construire le chemin du fichier
+    const filePath = path.join(__dirname, '../uploads', filename);
+    
+    // Vérifier si le fichier existe
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ msg: 'Fichier audio non trouvé' });
+    }
+    
+    // Déterminer le type MIME en fonction de l'extension du fichier
+    const contentType = getAudioMimeType(filename);
+    console.log(`Fichier audio: ${filename}, Type MIME: ${contentType}`);
+    
+    // Définir les en-têtes CORS spécifiques pour les fichiers audio
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    // Définir les en-têtes de cache pour améliorer les performances
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    res.setHeader('Content-Type', contentType);
+    
+    // Ajouter des en-têtes pour éviter les problèmes CORS avec les fichiers audio
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    
+    // Créer un flux de lecture pour le fichier
+    const fileStream = fs.createReadStream(filePath);
+    
+    // Gérer les erreurs de flux
+    fileStream.on('error', (error) => {
+      console.error('Erreur de lecture du fichier audio:', error);
+      res.status(500).json({ msg: 'Erreur lors de la lecture du fichier audio' });
+    });
+    
+    // Envoyer le fichier en streaming
+    fileStream.pipe(res);
+    
+  } catch (error) {
+    console.error('Erreur lors de la diffusion du fichier audio:', error);
+    res.status(500).json({ msg: 'Erreur serveur', error: error.message });
   }
 });
 

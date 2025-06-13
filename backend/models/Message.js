@@ -24,10 +24,15 @@ const MessageSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
-    realUser: {
+    // Changer la définition pour utiliser userId pour l'ID et realUser comme booléen
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       default: null
+    },
+    realUser: {
+      type: Boolean,
+      default: false
     },
     partialInfo: {
       firstLetter: String,
@@ -50,22 +55,18 @@ const MessageSchema = new mongoose.Schema({
     riddle: {
       question: String,
       answer: String
-    }
+    },
+    discoveredHints: [{
+      type: {
+        type: String,
+        enum: ['letter_0', 'letter_1', 'letter_2', 'letter_3', 'letter_4', 'letter_5', 'letter_6', 'letter_7', 
+               'letter_8', 'letter_9', 'letter_10', 'length', 'word_count', 'location', 'emoji', 'hint', 
+               'riddle_success', 'sender_hint', 'partial_name']
+      },
+      value: String,
+      description: String
+    }]
   },
-  discoveredHints: [{
-    type: {
-      type: String,
-      required: true
-    },
-    value: {
-      type: String,
-      required: true
-    },
-    description: {
-      type: String,
-      default: 'Indice'
-    }
-  }],
   revealCondition: {
     type: {
       type: String,
@@ -105,6 +106,24 @@ const MessageSchema = new mongoose.Schema({
   read: {
     type: Boolean,
     default: false
+  },
+  recipientLink: {
+    type: String,
+    required: true
+  },
+  isRead: {
+    type: Boolean,
+    default: false
+  },
+  hasVoiceMessage: {
+    type: Boolean,
+    default: false
+  },
+  voiceMessagePath: String,
+  voiceFilter: {
+    type: String,
+    enum: ['normal', 'robot', 'grave', 'aiguë', 'alien', 'anonyme'],
+    default: 'normal'
   },
   createdAt: {
     type: Date,

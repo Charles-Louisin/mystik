@@ -15,6 +15,9 @@ export const metadata = {
   keywords: ["anonyme", "messagerie", "mystik", "secret", "message"],
   authors: [{ name: "Mystik" }],
   metadataBase: new URL("https://mystik.app"), // À remplacer par votre domaine réel
+};
+
+export const viewport = {
   themeColor: "#8a2be2",
 };
 

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { FaShareAlt, FaCopy, FaBell, FaUserCircle, FaKey, FaSignOutAlt, FaQuestion, FaUser, FaCheckCircle } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
+import { FaShareAlt, FaCopy, FaBell, FaUserCircle, FaKey, FaSignOutAlt, FaQuestion, FaUser, FaCheckCircle, FaPlus, FaLink, FaStar, FaTrash, FaEdit, FaReply, FaLightbulb, FaVolumeUp, FaPause, FaPlay } from "react-icons/fa";
 import toast from "react-hot-toast";
 import axios from "axios";
 
@@ -34,6 +34,10 @@ export default function Dashboard() {
   const [usedKey, setUsedKey] = useState(false);
   const [partialInfoRevealed, setPartialInfoRevealed] = useState(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [playingAudio, setPlayingAudio] = useState(null);
+  const [audioDuration, setAudioDuration] = useState(0);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const audioPlayerRef = useRef(null);
   
   useEffect(() => {
     // Définir l'origine lorsque le composant est monté côté client
@@ -64,7 +68,19 @@ export default function Dashboard() {
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        setMessages(messagesData);
+        // Ajouter la logique pour traiter les messages audio
+        const updatedMessages = messagesData.map(message => {
+          if (message.hasVoiceMessage) {
+            return {
+              ...message,
+              audioUrl: `${apiBaseUrl}/api/messages/${message._id}/voice-message`,
+              isPlaying: false
+            };
+          }
+          return message;
+        });
+        
+        setMessages(updatedMessages);
         
         // Charger le radar émotionnel
         loadEmotionalRadar();
@@ -594,11 +610,22 @@ export default function Dashboard() {
       });
       
       // Mettre à jour l'état des messages avec les données fraîches du serveur
-      setMessages(messagesData);
+      const updatedMessages = messagesData.map(message => {
+        if (message.hasVoiceMessage) {
+          return {
+            ...message,
+            audioUrl: `${apiBaseUrl}/api/messages/${message._id}/voice-message`,
+            isPlaying: false
+          };
+        }
+        return message;
+      });
+      
+      setMessages(updatedMessages);
       
       // Si un message était sélectionné, mettre à jour son état également
       if (selectedMessage) {
-        const updatedSelectedMessage = messagesData.find(m => m._id === selectedMessage._id);
+        const updatedSelectedMessage = updatedMessages.find(m => m._id === selectedMessage._id);
         if (updatedSelectedMessage) {
           console.log("Mise à jour du message sélectionné:", updatedSelectedMessage);
           setSelectedMessage(updatedSelectedMessage);
@@ -637,7 +664,18 @@ export default function Dashboard() {
       });
       
       // Mettre à jour l'état des messages avec les données fraîches
-      setMessages(messagesData);
+      const updatedMessages = messagesData.map(message => {
+        if (message.hasVoiceMessage) {
+          return {
+            ...message,
+            audioUrl: `${apiBaseUrl}/api/messages/${message._id}/voice-message`,
+            isPlaying: false
+          };
+        }
+        return message;
+      });
+      
+      setMessages(updatedMessages);
       
       console.log("Messages rafraîchis avec succès après révélation");
       
@@ -649,6 +687,244 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Erreur lors du rafraîchissement des messages:", error);
       toast.error("Erreur lors de la mise à jour des messages");
+    }
+  };
+  
+  // Fonction pour formater le temps en format mm:ss avec précision milliseconde
+  const formatTime = (seconds) => {
+    if (isNaN(seconds) || !isFinite(seconds)) return "00:00";
+    
+    // Arrondir à 2 décimales pour éviter les fluctuations
+    const roundedSeconds = Math.round(seconds * 100) / 100;
+    
+    const minutes = Math.floor(roundedSeconds / 60);
+    const remainingSeconds = Math.floor(roundedSeconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+  
+  // Fonction pour lire ou mettre en pause un message audio
+  const toggleAudioPlayback = async (messageId) => {
+    // Si un autre audio est en cours de lecture, on l'arrête
+    if (playingAudio && playingAudio !== messageId) {
+      // Mettre à jour l'état des messages pour indiquer que l'audio précédent n'est plus en lecture
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg._id === playingAudio 
+            ? { ...msg, isPlaying: false } 
+            : msg
+        )
+      );
+      
+      // Arrêter l'audio en cours
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+        // Ne pas réinitialiser la position pour permettre de reprendre plus tard
+        // audioPlayerRef.current.currentTime = 0;
+      }
+    }
+    
+    // Mettre à jour l'état du message actuel
+    setMessages(prevMessages => 
+      prevMessages.map(msg => 
+        msg._id === messageId 
+          ? { ...msg, isPlaying: !msg.isPlaying } 
+          : msg
+      )
+    );
+    
+    // Si on clique sur le même message qui joue déjà, on le met en pause
+    if (playingAudio === messageId) {
+      if (audioPlayerRef.current && !audioPlayerRef.current.paused) {
+        audioPlayerRef.current.pause();
+        setPlayingAudio(null);
+      } else if (audioPlayerRef.current) {
+        // Reprendre la lecture depuis la position actuelle
+        audioPlayerRef.current.play()
+          .then(() => {
+        setPlayingAudio(messageId);
+          })
+          .catch(error => {
+            console.error("Erreur lors de la reprise de la lecture:", error);
+          });
+      }
+    } else {
+      // Sinon, on commence à jouer le nouveau message
+      const message = messages.find(msg => msg._id === messageId);
+      if (message && message.hasVoiceMessage) {
+        // Créer un nouvel élément audio
+        const audio = new Audio();
+        
+        // Réinitialiser les propriétés d'affichage de temps et de progression
+        setAudioDuration(0);
+        setAudioProgress(0);
+        
+        // Charger l'audio avec authentification
+        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+          ? 'http://localhost:5000' 
+          : window.location.origin;
+        
+        // Utiliser la fonction loadAudioWithAuth pour gérer l'authentification
+        const loadAudioWithAuth = async (url) => {
+          try {
+            // Extraire l'URL de base sans le token ou les paramètres
+            let cleanUrl = url;
+            if (url.includes('?')) {
+              cleanUrl = url.split('?')[0];
+            }
+            
+            console.log("Chargement audio depuis URL:", cleanUrl);
+            
+            // Récupérer le token d'authentification
+            const token = localStorage.getItem("token");
+            const headers = {};
+            
+            if (token) {
+              headers.Authorization = `Bearer ${token}`;
+            }
+            
+            // Effectuer la requête avec les en-têtes appropriés
+            console.log("En-têtes de requête:", headers);
+            const response = await fetch(cleanUrl, { 
+              headers,
+              // Retirer credentials: 'include' qui cause l'erreur CORS
+              mode: 'cors'
+            });
+            
+            if (!response.ok) {
+              console.error("Réponse HTTP non valide:", response.status, response.statusText);
+              throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+            
+            // Vérifier le type de contenu
+            const contentType = response.headers.get('content-type');
+            console.log("Type de contenu reçu:", contentType);
+            
+            // Convertir en blob avec le bon type MIME
+            const arrayBuffer = await response.arrayBuffer();
+            console.log("Taille des données audio reçues:", arrayBuffer.byteLength, "octets");
+            
+            // Utiliser le type de contenu de la réponse ou un type par défaut
+            const mimeType = contentType || 'audio/wav';
+            const blob = new Blob([arrayBuffer], { type: mimeType });
+            
+            // Créer une URL objet
+            const objectUrl = URL.createObjectURL(blob);
+            console.log("URL objet créée:", objectUrl);
+            
+            return objectUrl;
+          } catch (error) {
+            console.error("Erreur lors du chargement audio avec authentification:", error);
+            throw error;
+          }
+        };
+        
+        try {
+          const audioUrl = `${apiBaseUrl}/api/messages/${messageId}/voice-message`;
+          console.log("URL audio originale:", audioUrl);
+          const authenticatedAudioSrc = await loadAudioWithAuth(audioUrl);
+          audio.src = authenticatedAudioSrc;
+          console.log("Audio chargé avec authentification");
+        } catch (error) {
+          console.error("Erreur lors du chargement audio avec authentification:", error);
+          toast.error("Impossible de charger l'audio");
+          return;
+        }
+        
+        // Configurer les événements
+        audio.onloadedmetadata = () => {
+          if (!isNaN(audio.duration) && isFinite(audio.duration)) {
+            setAudioDuration(audio.duration);
+            console.log("Durée audio détectée:", audio.duration);
+          }
+        };
+        
+        // Mettre à jour la progression plus fréquemment pour une meilleure précision
+        audio.ontimeupdate = () => {
+          if (!isNaN(audio.currentTime) && !isNaN(audio.duration) && isFinite(audio.duration)) {
+            // Calculer la progression avec une précision de 4 décimales
+            const progress = parseFloat(((audio.currentTime / audio.duration) * 100).toFixed(4));
+            setAudioProgress(progress);
+          }
+        };
+        
+        audio.onended = () => {
+          setPlayingAudio(null);
+          setMessages(prevMessages => 
+            prevMessages.map(msg => 
+              msg._id === messageId 
+                ? { ...msg, isPlaying: false } 
+                : msg
+            )
+          );
+          setAudioProgress(0);
+        };
+        
+        audio.onerror = (e) => {
+          console.error("Erreur de lecture audio:", e);
+          console.error("Code d'erreur:", audio.error ? audio.error.code : "inconnu");
+          console.error("Message d'erreur:", audio.error ? audio.error.message : "inconnu");
+          
+          // Afficher un message d'erreur plus informatif
+          toast.error(`Erreur lors du chargement de l'audio: ${audio.error ? audio.error.message : "Impossible de charger l'audio"}`);
+          
+          setMessages(prevMessages => 
+            prevMessages.map(msg => 
+              msg._id === messageId 
+                ? { ...msg, isPlaying: false } 
+                : msg
+            )
+          );
+          
+          setPlayingAudio(null);
+        };
+        
+        // Définir la référence avant de démarrer la lecture
+        audioPlayerRef.current = audio;
+        
+        // Ajouter un gestionnaire pour le chargement des données
+        audio.addEventListener('canplaythrough', () => {
+          console.log("Audio prêt à être lu sans interruption");
+          
+          // Mettre à jour la durée une fois de plus pour s'assurer qu'elle est correcte
+          if (!isNaN(audio.duration) && isFinite(audio.duration)) {
+            setAudioDuration(audio.duration);
+          }
+        });
+        
+        // Pour certains navigateurs, le chargement peut prendre du temps
+        audio.addEventListener('loadeddata', () => {
+          console.log("Audio chargé, tentative de lecture");
+          
+          // Mettre à jour la durée une fois de plus
+          if (!isNaN(audio.duration) && isFinite(audio.duration)) {
+            setAudioDuration(audio.duration);
+          }
+          
+          // Démarrer la lecture
+          audio.play()
+            .then(() => {
+              console.log("Lecture audio démarrée avec succès");
+        setPlayingAudio(messageId);
+            })
+            .catch(error => {
+              console.error("Erreur lors de la lecture audio:", error);
+              toast.error("Impossible de lire l'audio. Vérifiez que le son de votre appareil est activé.");
+              
+              // Réinitialiser les états en cas d'erreur
+              setMessages(prevMessages => 
+                prevMessages.map(msg => 
+                  msg._id === messageId 
+                    ? { ...msg, isPlaying: false } 
+                    : msg
+                )
+              );
+              setPlayingAudio(null);
+            });
+        });
+        
+        // Forcer le chargement de l'audio
+        audio.load();
+      }
     }
   };
   
@@ -1051,81 +1327,136 @@ export default function Dashboard() {
                                   {message.content}
                                 </motion.p>
                               </motion.div>
-                            
-                            {/* Analyse IA */}
-                            {message.aiAnalysis && (
-                              <div className="mt-3 mb-4 p-3 bg-gray-800 rounded-lg">
-                                <p className="text-xs text-primary mb-1">Analyse IA</p>
-                                <p className="text-sm mb-2">{message.aiAnalysis.summary}</p>
-                                {message.aiAnalysis.suggestionForReply && (
-                                  <p className="text-xs text-gray-light">
-                                    Suggestion: {message.aiAnalysis.suggestionForReply}
+                              
+                              {/* Affichage du message vocal si disponible */}
+                              {message.hasVoiceMessage && (
+                                <div className="mt-2 mb-4">
+                                  <div className="flex items-center bg-gray-800 p-2 rounded-lg">
+                                    <button
+                                      onClick={() => toggleAudioPlayback(message._id)}
+                                      className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mr-3 hover:bg-primary/30 transition"
+                                    >
+                                      {message.isPlaying ? (
+                                        <FaPause className="text-primary" />
+                                      ) : (
+                                        <FaPlay className="text-primary" />
+                                      )}
+                                    </button>
+                                    <div className="flex-1">
+                                      <div className="text-xs text-gray-light mb-1 flex justify-between">
+                                        <span>Message vocal</span>
+                                        {message.voiceFilter && message.voiceFilter !== "normal" && (
+                                          <span className="text-primary font-medium">
+                                            Filtre: {message.voiceFilter === "aiguë" ? "Aigu" : 
+                                                   message.voiceFilter === "grave" ? "Grave" : 
+                                                   message.voiceFilter === "robot" ? "Robot" : 
+                                                   message.voiceFilter === "echo" ? "Écho" : 
+                                                   message.voiceFilter}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                        <div 
+                                          className={`h-full rounded-full transition-all duration-100 ${
+                                            message.voiceFilter === "aiguë" ? "bg-pink-500" :
+                                            message.voiceFilter === "grave" ? "bg-blue-500" :
+                                            message.voiceFilter === "robot" ? "bg-green-500" :
+                                            message.voiceFilter === "echo" ? "bg-purple-500" :
+                                            "bg-primary"
+                                          }`}
+                                          style={{ width: `${message.isPlaying ? audioProgress : 0}%` }}
+                                        ></div>
+                                      </div>
+                                      <div className="mt-1 text-xs text-gray-400 flex justify-between">
+                                        <span>
+                                          {message.isPlaying && playingAudio === message._id && audioPlayerRef.current ? 
+                                            formatTime(audioPlayerRef.current.currentTime) : "00:00"}
+                                        </span>
+                                        <span>
+                                          {message.isPlaying && playingAudio === message._id && audioPlayerRef.current ? 
+                                            formatTime(audioPlayerRef.current.duration || 0) : 
+                                            message.isPlaying ? "Chargement..." : ""}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Analyse IA */}
+                              {message.aiAnalysis && (
+                                <div className="mt-3 mb-4 p-3 bg-gray-800 rounded-lg">
+                                  <p className="text-xs text-primary mb-1">Analyse IA</p>
+                                  <p className="text-sm mb-2">{message.aiAnalysis.summary}</p>
+                                  {message.aiAnalysis.suggestionForReply && (
+                                    <p className="text-xs text-gray-light">
+                                      Suggestion: {message.aiAnalysis.suggestionForReply}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {(message.clues?.hint || message.clues?.riddle) && !message.sender.identityRevealed && (
+                                <div className="mt-4 pt-4 border-t border-gray-800">
+                                  <p className="text-sm text-gray-light mb-2">
+                                    Ce message contient des indices cachés que vous pouvez découvrir
                                   </p>
-                                )}
-                              </div>
-                            )}
-                            
-                            {(message.clues?.hint || message.clues?.riddle) && !message.sender.identityRevealed && (
-                              <div className="mt-4 pt-4 border-t border-gray-800">
-                                <p className="text-sm text-gray-light mb-2">
-                                  Ce message contient des indices cachés que vous pouvez découvrir
-                                </p>
-                                
-                                {message.clues?.hint && (
-                                  <div className="bg-gray-800 rounded-lg p-2 text-center mb-2">
-                                    <span className="text-xs text-primary">🔎 Indice disponible</span>
-                                  </div>
-                                )}
-                                
-                                {message.clues?.riddle && (
-                                  <div className="bg-gray-800 rounded-lg p-2 text-center">
-                                    <span className="text-xs text-primary">🎮 Devinette disponible</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            
-                            <div className="mt-4 flex justify-end space-x-2">
-                              {/* Bouton de partage */}
-                              <button 
-                                className="btn-sm bg-green-700 hover:bg-green-600 transition flex items-center"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedMessage(message);
-                                  setShowShareModal(true);
-                                }}
-                              >
-                                <FaShareAlt className="mr-2" size={12} />
-                                Partager
-                              </button>
-                              
-                              {/* Bouton d'analyse IA */}
-                              {!message.aiAnalysis && (
-                                <button 
-                                  className="btn-sm bg-blue-700 hover:bg-blue-600 transition flex items-center"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    analyzeMessage(message._id);
-                                  }}
-                                >
-                                  <span className="mr-1">🤖</span>
-                                  Analyser
-                                </button>
+                                  
+                                  {message.clues?.hint && (
+                                    <div className="bg-gray-800 rounded-lg p-2 text-center mb-2">
+                                      <span className="text-xs text-primary">🔎 Indice disponible</span>
+                                    </div>
+                                  )}
+                                  
+                                  {message.clues?.riddle && (
+                                    <div className="bg-gray-800 rounded-lg p-2 text-center">
+                                      <span className="text-xs text-primary">🎮 Devinette disponible</span>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                               
-                              {/* Bouton de révélation */}
-                              {(!message.sender.userDiscovered && (message.sender.realUser || !message.sender.nameDiscovered)) && (
+                              <div className="mt-4 flex justify-end space-x-2">
+                                {/* Bouton de partage */}
                                 <button 
-                                  className="btn-sm bg-purple-700 hover:bg-purple-600 transition flex items-center"
+                                  className="btn-sm bg-green-700 hover:bg-green-600 transition flex items-center"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    openRevealModal(message);
+                                    setSelectedMessage(message);
+                                    setShowShareModal(true);
                                   }}
                                 >
-                                  <FaKey className="mr-2" size={12} />
-                                  Découvrir
+                                  <FaShareAlt className="mr-2" size={12} />
+                                  Partager
                                 </button>
-                              )}
+                                
+                                {/* Bouton d'analyse IA */}
+                                {!message.aiAnalysis && (
+                                  <button 
+                                    className="btn-sm bg-blue-700 hover:bg-blue-600 transition flex items-center"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      analyzeMessage(message._id);
+                                    }}
+                                  >
+                                    <span className="mr-1">🤖</span>
+                                    Analyser
+                                  </button>
+                                )}
+                                
+                                {/* Bouton de révélation */}
+                                {(!message.sender.userDiscovered && (message.sender.realUser || !message.sender.nameDiscovered)) && (
+                                  <button 
+                                    className="btn-sm bg-purple-700 hover:bg-purple-600 transition flex items-center"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openRevealModal(message);
+                                    }}
+                                  >
+                                    <FaKey className="mr-2" size={12} />
+                                    Découvrir
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </motion.div>
