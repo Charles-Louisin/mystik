@@ -11,6 +11,10 @@ const multer = require('multer');
 const { processVoice } = require('../utils/voiceProcessor');
 const mongoose = require('mongoose');
 
+// Log pour déboguer les variables d'environnement
+console.log('OPENAI_API_KEY disponible:', !!process.env.OPENAI_API_KEY);
+console.log('OPENAI_API_KEY commence par:', process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 10) + '...' : 'non défini');
+
 // Configuration de multer pour les fichiers audio
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -43,6 +47,103 @@ const upload = multer({
     }
   }
 });
+
+// Importer OpenAI pour l'analyse des messages
+const OpenAI = require('openai');
+
+// Définir directement la clé API OpenAI (à remplacer par votre vraie clé)
+const OPENAI_API_KEY = "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";
+
+let openai = null;
+
+// Initialiser OpenAI avec la clé définie ci-dessus
+if (OPENAI_API_KEY) {
+  console.log("Initialisation d'OpenAI avec la clé définie directement dans le code");
+  openai = new OpenAI({
+    apiKey: OPENAI_API_KEY
+  });
+} else {
+  console.warn("Attention: Aucune clé OpenAI n'est définie. L'analyse avancée des messages ne sera pas disponible.");
+}
+
+// Fonction de fallback pour générer une analyse sans OpenAI
+function generateFallbackAnalysis(content, emotion) {
+  // Déterminer l'intention émotionnelle basée sur l'émotion choisie
+  let emotionalIntent = "";
+  let summary = "";
+  let suggestionForReply = "";
+  
+  switch(emotion) {
+    case 'amour':
+      emotionalIntent = "L'expéditeur semble exprimer des sentiments d'affection ou d'attachement profond.";
+      summary = "Ce message contient une expression sincère de sentiments positifs et d'attachement.";
+      suggestionForReply = "Tu pourrais répondre avec gratitude et partager tes propres sentiments si tu te sens à l'aise.";
+      break;
+    case 'colère':
+      emotionalIntent = "L'expéditeur semble frustré ou en colère à propos d'une situation.";
+      summary = "Ce message exprime du mécontentement ou de la frustration.";
+      suggestionForReply = "Tu pourrais répondre avec empathie tout en gardant ton calme, et proposer une discussion constructive.";
+      break;
+    case 'admiration':
+      emotionalIntent = "L'expéditeur semble t'admirer ou valoriser tes qualités.";
+      summary = "Ce message exprime du respect et de l'admiration.";
+      suggestionForReply = "Tu pourrais remercier l'expéditeur pour ses mots gentils et reconnaître ses propres qualités.";
+      break;
+    case 'regret':
+      emotionalIntent = "L'expéditeur semble exprimer des remords ou des excuses.";
+      summary = "Ce message contient des sentiments de regret ou de nostalgie.";
+      suggestionForReply = "Tu pourrais répondre avec compréhension et, si approprié, offrir ton pardon ou ton soutien.";
+      break;
+    case 'joie':
+      emotionalIntent = "L'expéditeur semble heureux et enthousiaste.";
+      summary = "Ce message exprime de la joie et de l'enthousiasme.";
+      suggestionForReply = "Tu pourrais partager sa joie et répondre avec un ton également positif et enjoué.";
+      break;
+    case 'tristesse':
+      emotionalIntent = "L'expéditeur semble triste ou mélancolique.";
+      summary = "Ce message exprime de la tristesse ou de la mélancolie.";
+      suggestionForReply = "Tu pourrais offrir ton soutien et ton empathie, et peut-être proposer ton aide.";
+      break;
+    default:
+      emotionalIntent = "L'intention émotionnelle n'est pas clairement définie.";
+      summary = "Ce message a un ton neutre ou mixte.";
+      suggestionForReply = "Tu pourrais répondre de manière équilibrée en reflétant le ton du message.";
+  }
+  
+  // Adapter l'analyse au contenu du message
+  const contentLength = content.length;
+  if (contentLength < 50) {
+    summary += " (message court et concis)";
+  } else if (contentLength > 200) {
+    summary += " (message détaillé et élaboré)";
+  }
+  
+  // Vérifier si le message contient des questions
+  if (content.includes('?')) {
+    suggestionForReply += " N'oublie pas de répondre aux questions posées.";
+  }
+  
+  // Vérifier les mots-clés dans le contenu pour personnaliser davantage
+  const lowerContent = content.toLowerCase();
+  
+  if (lowerContent.includes('merci') || lowerContent.includes('remercie')) {
+    emotionalIntent += " Il y a une expression de gratitude dans ce message.";
+  }
+  
+  if (lowerContent.includes('désolé') || lowerContent.includes('excuse') || lowerContent.includes('pardon')) {
+    emotionalIntent += " L'expéditeur présente des excuses ou exprime des regrets.";
+  }
+  
+  if (lowerContent.includes('urgent') || lowerContent.includes('rapidement') || lowerContent.includes('vite')) {
+    summary += " Une réponse rapide semble être attendue.";
+  }
+  
+  return {
+    emotionalIntent,
+    summary,
+    suggestionForReply
+  };
+}
 
 // @route   POST /api/messages/send
 // @desc    Send an anonymous message
@@ -641,35 +742,87 @@ router.post('/:id/reveal-partial', auth, async (req, res) => {
 });
 
 // @route   POST /api/messages/:id/analyze
-// @desc    Analyze message with AI
+// @desc    Analyze a message with AI
 // @access  Private
 router.post('/:id/analyze', auth, async (req, res) => {
   try {
-    const message = await Message.findOne({ _id: req.params.id, recipient: req.user.id });
+    // Récupérer le message
+    const message = await Message.findOne({ 
+      _id: req.params.id, 
+      recipient: req.user.id
+    });
 
     if (!message) {
       return res.status(404).json({ msg: 'Message non trouvé' });
     }
 
-    // Ici, on simulerait l'appel à une API d'IA comme OpenAI
-    // Pour l'instant, nous allons juste générer une analyse fictive
-    const emotionalIntents = ['sincère', 'humoristique', 'sérieux', 'amical', 'nostalgique', 'admiratif'];
-    const randomIntent = emotionalIntents[Math.floor(Math.random() * emotionalIntents.length)];
+    // Récupérer le contenu et l'émotion du message
+    const content = message.content;
+    const emotion = message.emotionalFilter || 'neutre';
     
-    const aiAnalysis = {
-      emotionalIntent: randomIntent,
-      summary: `Ce message semble être ${randomIntent} et écrit avec une émotion de ${message.emotionalFilter}.`,
-      suggestionForReply: `Tu pourrais répondre en montrant ta gratitude et ta curiosité.`
-    };
-
-    // Sauvegarder l'analyse dans le message
+    let aiAnalysis = {};
+    
+    // Vérifier si OpenAI est disponible
+    if (openai) {
+      try {
+        // Créer un prompt adapté pour l'analyse
+        const prompt = `
+        Analyse ce message envoyé avec l'émotion "${emotion}":
+        
+        "${content}"
+        
+        Réponds en français avec:
+        1. Une analyse de l'intention émotionnelle de l'expéditeur (max 2 phrases)
+        2. Un résumé court du message (max 2 phrases)
+        3. Une suggestion de réponse adaptée à l'émotion et au contenu (max 3 phrases)
+        
+        Sois précis et adapte ton analyse à l'émotion indiquée. Assure-toi que ta réponse est vraiment en rapport avec le contenu du message et l'humeur choisie.
+        `;
+        
+        // Appeler l'API OpenAI pour l'analyse
+        const completion = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: "system", content: "Tu es un assistant spécialisé dans l'analyse émotionnelle des messages. Tu fournis des analyses pertinentes et des suggestions de réponse adaptées au ton émotionnel." },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 500
+        });
+        
+        // Extraire la réponse
+        const aiResponse = completion.choices[0].message.content;
+        
+        // Traiter la réponse pour extraire les différentes parties
+        const parts = aiResponse.split(/\d+\.\s+/).filter(part => part.trim());
+        
+        aiAnalysis = {
+          emotionalIntent: parts[0]?.trim() || "Intention émotionnelle non détectée",
+          summary: parts[1]?.trim() || "Résumé non disponible",
+          suggestionForReply: parts[2]?.trim() || "Suggestion de réponse non disponible"
+        };
+      } catch (openaiError) {
+        console.error("Erreur lors de l'appel à OpenAI:", openaiError);
+        // Utiliser l'analyse de fallback en cas d'erreur
+        aiAnalysis = generateFallbackAnalysis(content, emotion);
+      }
+    } else {
+      // Fallback si OpenAI n'est pas disponible
+      aiAnalysis = generateFallbackAnalysis(content, emotion);
+    }
+    
+    // Mettre à jour le message avec l'analyse
     message.aiAnalysis = aiAnalysis;
     await message.save();
 
     res.json({ aiAnalysis });
+    
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Erreur serveur');
+    console.error("Erreur lors de l'analyse du message:", err);
+    res.status(500).json({ 
+      msg: 'Erreur serveur', 
+      error: err.message 
+    });
   }
 });
 

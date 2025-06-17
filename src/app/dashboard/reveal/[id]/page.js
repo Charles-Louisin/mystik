@@ -75,49 +75,66 @@ export default function RevealIdentity() {
   }, [id, router]);
   
   const handleReveal = async () => {
-    if (revealLoading) return;
-    
-    if (revealMethod === "riddle" && !answer.trim()) {
-      toast.error("Veuillez entrer une réponse à la devinette");
-      return;
-    }
-    
-    if (revealMethod === "key" && (!user || user.revealKeys <= 0)) {
-      toast.error("Vous n'avez pas assez de clés");
-      return;
+    // Si on essaie de révéler l'identité réelle de l'utilisateur, afficher un message
+    if (message && message.sender && message.sender.realUser) {
+      toast("La découverte de l'identité réelle est une fonctionnalité à venir");
     }
     
     setRevealLoading(true);
     
     try {
       const token = localStorage.getItem("token");
-      const { data } = await axios.post(
-        `http://localhost:5000/api/messages/${id}/reveal`,
-        {
-          method: revealMethod,
-          answer: answer
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
       
-      setRevealed(true);
-      setRevealedInfo(data.sender);
+      // Déterminer l'endpoint en fonction de la méthode de révélation
+      let endpoint = '';
+      let payload = {};
       
       if (revealMethod === "key") {
-        // Mettre à jour le nombre de clés
+        endpoint = `/api/messages/${id}/reveal-with-key`;
+      } else if (revealMethod === "riddle") {
+        endpoint = `/api/messages/${id}/reveal-with-riddle`;
+        payload = { answer };
+      } else {
+        toast.error("Méthode de révélation non valide");
+        setRevealLoading(false);
+        return;
+      }
+      
+      const { data } = await axios.post(endpoint, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (data.success) {
+        // Mettre à jour l'état local pour refléter que l'identité a été révélée
+        setRevealed(true);
+        setRevealedInfo({
+          nickname: data.nickname || "Anonyme",
+          emoji: data.emoji,
+          hint: data.hint,
+          location: data.location
+        });
+        
+        // Si une clé a été utilisée, mettre à jour le nombre de clés de l'utilisateur
+        if (revealMethod === "key" && user) {
         setUser({
           ...user,
           revealKeys: user.revealKeys - 1
         });
       }
       
-      toast.success("Identité révélée avec succès");
+        toast.success("Identité révélée avec succès !");
+      } else {
+        if (data.error === "wrong_answer") {
+          toast.error("Mauvaise réponse à la devinette. Essayez à nouveau.");
+        } else if (data.error === "no_keys") {
+          toast.error("Vous n'avez pas de clés disponibles.");
+        } else {
+          toast.error(data.message || "Erreur lors de la révélation de l'identité");
+        }
+      }
     } catch (error) {
       console.error("Erreur lors de la révélation de l'identité:", error);
-      const errorMessage = error.response?.data?.message || "Erreur lors de la révélation de l'identité";
-      toast.error(errorMessage);
+      toast.error("Une erreur s'est produite lors de la révélation de l'identité");
     } finally {
       setRevealLoading(false);
     }
@@ -290,7 +307,11 @@ export default function RevealIdentity() {
                             ? "border-primary bg-primary/10" 
                             : "border-gray-700 hover:border-gray-600"
                         }`}
-                        onClick={() => setRevealMethod("challenge")}
+                        onClick={() => {
+                          toast("Fonctionnalité à venir");
+                          // Commenté pour désactiver temporairement la fonctionnalité
+                          // setRevealMethod("challenge")
+                        }}
                       >
                         <div className="flex items-center">
                           <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mr-3">

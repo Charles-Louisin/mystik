@@ -546,85 +546,48 @@ const RevealSuccessModal = ({
   };
   
   const checkGuess = async () => {
-    if (guessType === 'nickname') {
-      // Vérification classique du surnom
-      console.log("Vérification du surnom:", {
-        saisi: guessName.trim().toLowerCase(),
-        attendu: senderInfo.nickname.trim().toLowerCase()
-      });
-      
-      // Simplifier la comparaison - retirer les espaces inutiles et faire une comparaison insensible à la casse
-      const userGuess = guessName.trim().toLowerCase();
-      const actualNickname = senderInfo.nickname.trim().toLowerCase();
-      
-      const isCorrect = userGuess === actualNickname;
-      setGuessResult(isCorrect);
-      
-      if (isCorrect) {
-        setNameRevealed(true);
-        launchConfetti();
-        
-        // Mettre à jour le statut nameDiscovered dans le message
-        updateNameDiscovered();
-        
-        // Notification de succès
-        toast.success("Félicitations ! Vous avez trouvé le bon surnom !");
-        
-        // Si c'est un utilisateur réel, on peut maintenant deviner son identité
-        if (senderInfo && senderInfo.realUser) {
-          console.log("Surnom découvert pour un utilisateur réel - Possibilité de deviner l'identité réelle");
-        }
-      } else {
-        toast.error("Ce n'est pas le bon surnom. Essayez à nouveau.");
-      }
-    } else if (guessType === 'user') {
-      if (!messageId) {
-        console.error("Impossible de vérifier l'utilisateur: messageId est undefined");
-        toast.error("Erreur d'identification du message");
+    if (!guessName.trim()) {
+      toast.error("Veuillez entrer un nom");
+      return;
+    }
+    
+    // Si on essaie de deviner l'utilisateur réel, afficher un message que c'est à venir
+    if (guessType === 'user') {
+      toast("Fonctionnalité à venir");
         return;
       }
       
-      // Vérification de l'utilisateur dans la base de données
       setIsCheckingUser(true);
-      try {
-        const token = localStorage.getItem("token");
+    
+    try {
+      // Vérifier si la devinette est correcte
+      if (guessType === 'nickname' && senderInfo && senderInfo.nickname) {
+        const normalizedGuess = guessName.trim().toLowerCase();
+        const normalizedActual = senderInfo.nickname.toLowerCase();
         
-        const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-          ? 'http://localhost:5000' 
-          : window.location.origin;
-        
-        const { data } = await axios.post(
-          `${apiBaseUrl}/api/messages/${messageId}/check-user-guess`,
-          { username: guessName },
-          { headers: { Authorization: `Bearer ${token}` }}
-        );
-        
-        setGuessResult(data.correct);
-        setGuessResponseMessage(data.message);
-        
-        if (data.correct) {
-          setUserIdentityRevealed(true);
+        if (normalizedGuess === normalizedActual) {
+          // Devinette correcte
+          setNameRevealed(true);
+          setShowForm(false);
           launchConfetti();
           
-          // Mettre à jour le statut userDiscovered dans le message
-          await updateUserDiscovered();
+          // Mettre à jour le statut de découverte
+          await updateNameDiscovered();
           
-          // Mise à jour locale du senderInfo
-          if (senderInfo) {
-            senderInfo.userDiscovered = true;
-            senderInfo.realUserName = guessName;
-          }
-          
-          // Notification de succès
-          toast.success("Félicitations ! Vous avez découvert l'identité complète !");
+          toast.success("Bravo ! Vous avez deviné correctement !");
+        } else if (isPartiallyCorrect(normalizedGuess, normalizedActual)) {
+          // Partiellement correct
+          toast.info("Vous êtes proche ! Essayez encore.");
+        } else {
+          // Incorrect
+          toast.error("Ce n'est pas le bon surnom. Essayez encore !");
+        }
         }
       } catch (error) {
-        console.error("Erreur lors de la vérification de l'utilisateur:", error);
-        setGuessResult(false);
-        setGuessResponseMessage("Erreur lors de la vérification. Réessayez plus tard.");
+      console.error("Erreur lors de la vérification de la devinette:", error);
+      toast.error("Une erreur s'est produite lors de la vérification");
       } finally {
         setIsCheckingUser(false);
-      }
     }
   };
   
@@ -679,6 +642,11 @@ const RevealSuccessModal = ({
   
   // Fonction pour mettre à jour le message quand l'utilisateur réel est découvert
   const updateUserDiscovered = async () => {
+    // Fonctionnalité temporairement désactivée
+    toast("Fonctionnalité à venir");
+    return;
+    
+    /*
     if (!messageId) {
       console.error("Impossible de mettre à jour le statut de découverte de l'utilisateur: messageId est undefined");
       return;
@@ -730,6 +698,7 @@ const RevealSuccessModal = ({
       console.error("Erreur lors de la mise à jour du statut de découverte de l'utilisateur:", error);
       toast.error("Erreur lors de la mise à jour de l'identité");
     }
+    */
   };
   
   // Fonction pour gérer la fermeture du modal et s'assurer que les changements sont propagés
@@ -972,15 +941,15 @@ const RevealSuccessModal = ({
               >
                 <h3 className="text-sm font-semibold mb-2 flex items-center">
                   <FaCheckCircle className="text-green-400 mr-2" />
-                  <span className="text-green-300">Identité révélée</span>
+                  <span className="text-green-300">Surnom découvert</span>
                 </h3>
                 
                 <div className="mb-3">
                   <p className="text-sm mb-1">
-                    Nom d'utilisateur :
+                    Surnom :
                   </p>
                   <p className="text-lg font-medium text-green-300">
-                    {senderInfo.realUserName || senderInfo.nickname || "(Nom non disponible)"}
+                    {senderInfo.nickname || "(Surnom non disponible)"}
                   </p>
                 </div>
               </motion.div>
@@ -1021,16 +990,19 @@ const RevealSuccessModal = ({
             )}
             
             <div className="mt-6">
-              {/* Ajouter un bouton pour deviner l'utilisateur réel si disponible */}
+              {/* Bouton pour deviner l'utilisateur réel - fonctionnalité temporairement désactivée */}
               {senderInfo && senderInfo.realUser && !senderInfo.userDiscovered && (
                 <motion.button
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.4 }}
                   onClick={() => {
-                    setShowForm(true);
-                    setGuessType('user');
-                    setNameRevealed(false);
+                    // Afficher un message indiquant que la fonctionnalité est à venir
+                    toast("Fonctionnalité à venir");
+                    // Commenté pour désactiver temporairement la fonctionnalité
+                    // setShowForm(true);
+                    // setGuessType('user');
+                    // setNameRevealed(false);
                   }}
                   className="btn-primary w-full mb-3"
                 >
@@ -1310,12 +1282,8 @@ const RevealSuccessModal = ({
                   Surnom
                 </button>
                 <button
-                  onClick={() => setGuessType('user')}
-                  className={`flex-1 py-2 px-4 rounded-lg text-center ${
-                    guessType === 'user' 
-                      ? 'bg-primary text-white' 
-                      : 'bg-gray-800 text-gray-300'
-                  }`}
+                  onClick={() => toast("Fonctionnalité à venir")}
+                  className={`flex-1 py-2 px-4 rounded-lg text-center bg-gray-800 text-gray-300 opacity-70`}
                 >
                   Utilisateur
                 </button>

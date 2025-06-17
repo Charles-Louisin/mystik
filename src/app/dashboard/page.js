@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaShareAlt, FaCopy, FaBell, FaUserCircle, FaKey, FaSignOutAlt, FaQuestion, FaUser, FaCheckCircle, FaPlus, FaLink, FaStar, FaTrash, FaEdit, FaReply, FaLightbulb, FaVolumeUp, FaPause, FaPlay } from "react-icons/fa";
+import { FaShareAlt, FaCopy, FaBell, FaUserCircle, FaKey, FaSignOutAlt, FaQuestion, FaUser, FaCheckCircle, FaPlus, FaLink, FaStar, FaTrash, FaEdit, FaReply, FaLightbulb, FaVolumeUp, FaPause, FaPlay, FaEye, FaBrain } from "react-icons/fa";
 import toast from "react-hot-toast";
 import axios from "axios";
 
@@ -38,6 +38,7 @@ export default function Dashboard() {
   const [audioDuration, setAudioDuration] = useState(0);
   const [audioProgress, setAudioProgress] = useState(0);
   const audioPlayerRef = useRef(null);
+  const [revealLoading, setRevealLoading] = useState(false);
   
   useEffect(() => {
     // Définir l'origine lorsque le composant est monté côté client
@@ -74,10 +75,14 @@ export default function Dashboard() {
             return {
               ...message,
               audioUrl: `${apiBaseUrl}/api/messages/${message._id}/voice-message`,
-              isPlaying: false
+              isPlaying: false,
+              analyzed: !!message.aiAnalysis // Marquer comme analysé si aiAnalysis existe
             };
           }
-          return message;
+          return {
+            ...message,
+            analyzed: !!message.aiAnalysis // Marquer comme analysé si aiAnalysis existe
+          };
         });
         
         setMessages(updatedMessages);
@@ -441,89 +446,99 @@ export default function Dashboard() {
   const revealSender = async () => {
     if (!selectedMessage) return;
     
+    // Si on essaie de révéler l'identité réelle de l'utilisateur, afficher un message
+    if (selectedMessage.sender && selectedMessage.sender.realUser) {
+      toast("La découverte de l'identité réelle est une fonctionnalité à venir");
+    }
+    
+    setRevealLoading(true);
+    
     try {
       const token = localStorage.getItem("token");
-      
       const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
         : window.location.origin;
       
-      let requestData = { method: revealMethod };
+      let endpoint = '';
+      let payload = {};
       
-      if (revealMethod === 'riddle') {
-        requestData.answer = riddleAnswer;
+      if (revealMethod === "key") {
+        endpoint = `${apiBaseUrl}/api/messages/${selectedMessage._id}/reveal-with-key`;
+      } else if (revealMethod === "riddle" && riddleAnswer) {
+        endpoint = `${apiBaseUrl}/api/messages/${selectedMessage._id}/reveal-with-riddle`;
+        payload = { answer: riddleAnswer };
+      } else {
+        toast.error("Méthode de révélation non valide");
+        setRevealLoading(false);
+        return;
       }
       
-      console.log("Révélation de l'identité avec les données:", requestData);
+      const response = await axios.post(endpoint, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
-      const { data } = await axios.post(
-        `${apiBaseUrl}/api/messages/${selectedMessage._id}/reveal`,
-        requestData,
-        { headers: { Authorization: `Bearer ${token}` }}
-      );
-      
-      console.log("Réponse de l'API reveal:", data);
-      
-      // S'assurer que toutes les propriétés importantes sont présentes et correctement définies
-      const senderInfo = {
-        ...data.sender,
+      if (response.data.success) {
+        // Mettre à jour l'état local pour refléter que le message a été révélé
+        const updatedMessages = messages.map(msg => {
+          if (msg._id === selectedMessage._id) {
+            return {
+              ...msg,
+              sender: {
+                ...msg.sender,
         identityRevealed: true,
-        nickname: data.sender.nickname || "Anonyme",
-        displayNickname: data.sender.displayNickname || null,
-        nameDiscovered: Boolean(data.sender.nameDiscovered),
-        userDiscovered: Boolean(data.sender.userDiscovered),
-        realUserName: data.sender.realUserName || null,
-        realUser: Boolean(data.sender.realUser),
-        riddleSolved: Boolean(data.sender.riddleSolved)
-      };
-      
-      console.log("Informations de l'expéditeur formatées:", senderInfo);
-      
-      // Mise à jour du message dans l'état
-      const updatedMessages = messages.map(msg => 
-        msg._id === selectedMessage._id 
-          ? { 
-              ...msg, 
-              sender: senderInfo
-            } 
-          : msg
-      );
+                nickname: response.data.nickname || msg.sender.nickname
+              },
+              clues: response.data.clues || msg.clues
+            };
+          }
+          return msg;
+        });
       
       setMessages(updatedMessages);
       
-      // Mise à jour du message sélectionné
-      const updatedSelectedMessage = {
-        ...selectedMessage,
-        sender: senderInfo
-      };
-      
-      setSelectedMessage(updatedSelectedMessage);
-      
-      // Mise à jour du nombre de clés si une clé a été utilisée
-      if (revealMethod === 'key') {
-        setUser(prevUser => ({
-          ...prevUser,
-          revealKeys: (prevUser.revealKeys || 0) - 1
-        }));
+        // Si une clé a été utilisée, mettre à jour le nombre de clés de l'utilisateur
+        if (revealMethod === "key" && user) {
+          setUser({
+            ...user,
+            revealKeys: user.revealKeys - 1
+          });
+          
         setUsedKey(true);
+        }
         
-        // Rafraîchir les données utilisateur
-        refreshUserData();
-      } else {
-        setUsedKey(false);
-      }
+        // Stocker les informations révélées
+        setRevealedSenderInfo({
+          nickname: response.data.nickname,
+          emoji: response.data.clues?.emoji,
+          hint: response.data.clues?.hint,
+          riddle: response.data.clues?.riddle,
+          realUser: response.data.realUser || false,
+          // Ne pas stocker les informations d'identité réelle pour l'instant
+          userDiscovered: false
+        });
       
-      // Fermer le modal de révélation
-      setShowRevealModal(false);
-      
-      // Afficher le modal de succès avec les informations complètes
-      console.log("Informations de l'expéditeur à afficher dans le modal:", senderInfo);
-      setRevealedSenderInfo(senderInfo);
+        // Fermer le modal de révélation et ouvrir le modal de succès
+        setShowRevealModal(false);
       setShowSuccessModal(true);
       
+        // Notification de succès
+        toast.success("Identité révélée avec succès !");
+      } else {
+        // Gérer les erreurs spécifiques
+        if (response.data.error === "wrong_answer") {
+          toast.error("Mauvaise réponse à la devinette. Essayez à nouveau.");
+        } else if (response.data.error === "no_keys") {
+          toast.error("Vous n'avez pas de clés disponibles.");
+        } else {
+          toast.error(response.data.message || "Erreur lors de la révélation de l'identité");
+        }
+      }
     } catch (error) {
       console.error("Erreur lors de la révélation de l'identité:", error);
-      toast.error("Erreur lors de la révélation de l'identité");
+      toast.error("Une erreur s'est produite lors de la révélation de l'identité");
+    } finally {
+      setRevealLoading(false);
+      setRiddleAnswer("");
     }
   };
   
@@ -592,7 +607,7 @@ export default function Dashboard() {
       // Mise à jour du message dans l'état
       const updatedMessages = messages.map(msg => 
         msg._id === messageId 
-          ? { ...msg, aiAnalysis: data.aiAnalysis } 
+          ? { ...msg, aiAnalysis: data.aiAnalysis, analyzed: true } 
           : msg
       );
       
@@ -607,6 +622,11 @@ export default function Dashboard() {
   
   // Fonction pour envoyer un message à l'expéditeur qui a été révélé
   const sendMessageToSender = () => {
+    // Fonctionnalité temporairement désactivée
+    toast("Fonctionnalité à venir");
+    return;
+    
+    /*
     if (!revealedSenderInfo || !selectedMessage) {
       toast.error("Impossible d'envoyer un message à cet utilisateur");
       return;
@@ -641,24 +661,25 @@ export default function Dashboard() {
     // Rediriger vers la page d'envoi de message avec le destinataire pré-rempli
     router.push(`/send?to=${recipientIdentifier}`);
     setShowSuccessModal(false);
+    */
   };
   
   // Fonction pour notifier l'expéditeur qu'il a été dévoilé
   const notifySender = async () => {
-    if (!revealedSenderInfo || !selectedMessage) {
-      toast.error("Impossible de notifier cet utilisateur");
+    // Fonctionnalité temporairement désactivée
+    toast("Fonctionnalité à venir");
       return;
-    }
     
-    // Vérifier que l'utilisateur réel existe
-    if (!selectedMessage.sender.realUser && !selectedMessage.sender.realUserName) {
-      toast.error("Impossible de notifier cet utilisateur anonyme");
+    /*
+    if (!revealedSenderInfo || !selectedMessage) {
+      toast.error("Impossible de notifier l'expéditeur");
       return;
     }
     
     try {
-      const token = localStorage.getItem("token");
+      setNotifying(true);
       
+      const token = localStorage.getItem("token");
       const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
         : window.location.origin;
@@ -672,9 +693,12 @@ export default function Dashboard() {
       toast.success("L'expéditeur a été notifié que vous avez découvert son identité");
       setShowSuccessModal(false);
     } catch (error) {
-      console.error("Erreur lors de la notification:", error);
-      toast.error("Impossible de notifier l'expéditeur pour le moment");
+      console.error("Erreur lors de la notification de l'expéditeur:", error);
+      toast.error("Impossible de notifier l'expéditeur");
+    } finally {
+      setNotifying(false);
     }
+    */
   };
   
   // Fonction pour rafraîchir les messages
@@ -715,10 +739,14 @@ export default function Dashboard() {
           return {
             ...message,
             audioUrl: `${apiBaseUrl}/api/messages/${message._id}/voice-message`,
-            isPlaying: false
+            isPlaying: false,
+            analyzed: !!message.aiAnalysis // Marquer comme analysé si aiAnalysis existe
           };
         }
-        return message;
+        return {
+          ...message,
+          analyzed: !!message.aiAnalysis // Marquer comme analysé si aiAnalysis existe
+        };
       });
       
       setMessages(updatedMessages);
@@ -769,10 +797,14 @@ export default function Dashboard() {
           return {
             ...message,
             audioUrl: `${apiBaseUrl}/api/messages/${message._id}/voice-message`,
-            isPlaying: false
+            isPlaying: false,
+            analyzed: !!message.aiAnalysis // Marquer comme analysé si aiAnalysis existe
           };
         }
-        return message;
+        return {
+          ...message,
+          analyzed: !!message.aiAnalysis // Marquer comme analysé si aiAnalysis existe
+        };
       });
       
       setMessages(updatedMessages);
@@ -1241,52 +1273,54 @@ export default function Dashboard() {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3 }}
-                            className={`card p-0 overflow-hidden ${!message.read ? 'border-2 border-primary' : 'border border-gray-800'}`}
+                            className={`card p-0 overflow-hidden backdrop-blur-sm ${!message.read ? 'border-2 border-primary shadow-lg shadow-primary/20' : 'border border-gray-800'} hover:shadow-xl transition-all duration-300`}
                             onClick={() => !message.read && markAsRead(message._id)}
                             whileHover={
-                              message.emotionalFilter === 'amour' ? { scale: 1.02, boxShadow: "0 0 15px rgba(233, 30, 99, 0.3)" } :
-                              message.emotionalFilter === 'colère' ? { scale: 1.02, boxShadow: "0 0 15px rgba(244, 67, 54, 0.3)" } :
-                              message.emotionalFilter === 'admiration' ? { scale: 1.02, boxShadow: "0 0 15px rgba(139, 195, 74, 0.3)" } :
-                              message.emotionalFilter === 'regret' ? { scale: 1.01, boxShadow: "0 0 15px rgba(96, 125, 139, 0.3)" } :
-                              message.emotionalFilter === 'joie' ? { scale: 1.03, boxShadow: "0 0 15px rgba(255, 235, 59, 0.3)" } :
-                              message.emotionalFilter === 'tristesse' ? { scale: 1.01, boxShadow: "0 0 15px rgba(33, 150, 243, 0.3)" } :
-                              { scale: 1.01, boxShadow: "0 0 10px rgba(255, 255, 255, 0.1)" }
+                              message.emotionalFilter === 'amour' ? { scale: 1.02, boxShadow: "0 0 20px rgba(233, 30, 99, 0.4)" } :
+                              message.emotionalFilter === 'colère' ? { scale: 1.02, boxShadow: "0 0 20px rgba(244, 67, 54, 0.4)" } :
+                              message.emotionalFilter === 'admiration' ? { scale: 1.02, boxShadow: "0 0 20px rgba(139, 195, 74, 0.4)" } :
+                              message.emotionalFilter === 'regret' ? { scale: 1.01, boxShadow: "0 0 20px rgba(96, 125, 139, 0.4)" } :
+                              message.emotionalFilter === 'joie' ? { scale: 1.03, boxShadow: "0 0 20px rgba(255, 235, 59, 0.4)" } :
+                              message.emotionalFilter === 'tristesse' ? { scale: 1.01, boxShadow: "0 0 20px rgba(33, 150, 243, 0.4)" } :
+                              { scale: 1.01, boxShadow: "0 0 15px rgba(255, 255, 255, 0.15)" }
                             }
                           >
-                            {/* En-tête stylisé selon l'émotion */}
+                            {/* En-tête stylisé selon l'émotion avec effet de verre */}
                             <div 
-                              className={`p-4 flex justify-between items-start 
+                              className={`p-4 flex justify-between items-start backdrop-blur-md
                                 ${message.emotionalFilter && message.emotionalFilter !== 'neutre' ? 
-                                  message.emotionalFilter === 'amour' ? 'bg-pink-900/40 border-b border-pink-700' : 
-                                  message.emotionalFilter === 'colère' ? 'bg-red-900/40 border-b border-red-700' : 
-                                  message.emotionalFilter === 'admiration' ? 'bg-green-900/40 border-b border-green-700' : 
-                                  message.emotionalFilter === 'regret' ? 'bg-slate-800/80 border-b border-slate-600' : 
-                                  message.emotionalFilter === 'joie' ? 'bg-yellow-900/30 border-b border-yellow-700' : 
-                                  message.emotionalFilter === 'tristesse' ? 'bg-blue-900/40 border-b border-blue-700' : 
-                                  'bg-transparent' : 'bg-transparent'
+                                  message.emotionalFilter === 'amour' ? 'bg-pink-900/40 border-b border-pink-700 shadow-inner shadow-pink-800/30' : 
+                                  message.emotionalFilter === 'colère' ? 'bg-red-900/40 border-b border-red-700 shadow-inner shadow-red-800/30' : 
+                                  message.emotionalFilter === 'admiration' ? 'bg-green-900/40 border-b border-green-700 shadow-inner shadow-green-800/30' : 
+                                  message.emotionalFilter === 'regret' ? 'bg-slate-800/80 border-b border-slate-600 shadow-inner shadow-slate-700/30' : 
+                                  message.emotionalFilter === 'joie' ? 'bg-yellow-900/30 border-b border-yellow-700 shadow-inner shadow-yellow-800/30' : 
+                                  message.emotionalFilter === 'tristesse' ? 'bg-blue-900/40 border-b border-blue-700 shadow-inner shadow-blue-800/30' : 
+                                  'bg-gray-900/80 border-b border-gray-800' : 'bg-gray-900/80 border-b border-gray-800'
                                 }`}
                             >
                               <div className="flex items-center">
                                 <motion.div 
-                                  className={`w-10 h-10 rounded-full flex items-center justify-center mr-3
-                                    ${message.emotionalFilter === 'amour' ? 'bg-pink-700/50' : 
-                                      message.emotionalFilter === 'colère' ? 'bg-red-700/50' : 
-                                      message.emotionalFilter === 'admiration' ? 'bg-green-700/50' : 
-                                      message.emotionalFilter === 'regret' ? 'bg-slate-600/50' : 
-                                      message.emotionalFilter === 'joie' ? 'bg-yellow-600/50' : 
-                                      message.emotionalFilter === 'tristesse' ? 'bg-blue-700/50' : 
-                                      message.sender.identityRevealed ? 'bg-primary/20' : 'bg-gray-700/50'
+                                  className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 shadow-lg
+                                    ${message.emotionalFilter === 'amour' ? 'bg-gradient-to-br from-pink-600 to-pink-900 shadow-pink-700/40' : 
+                                      message.emotionalFilter === 'colère' ? 'bg-gradient-to-br from-red-600 to-red-900 shadow-red-700/40' : 
+                                      message.emotionalFilter === 'admiration' ? 'bg-gradient-to-br from-green-600 to-green-900 shadow-green-700/40' : 
+                                      message.emotionalFilter === 'regret' ? 'bg-gradient-to-br from-slate-500 to-slate-800 shadow-slate-600/40' : 
+                                      message.emotionalFilter === 'joie' ? 'bg-gradient-to-br from-yellow-500 to-yellow-800 shadow-yellow-600/40' : 
+                                      message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-br from-blue-600 to-blue-900 shadow-blue-700/40' : 
+                                      message.sender.identityRevealed ? 'bg-gradient-to-br from-purple-500 to-purple-900 shadow-purple-700/40' : 'bg-gradient-to-br from-gray-600 to-gray-900'
                                     }`}
                                   animate={
                                     message.emotionalFilter === 'amour' ? { scale: [1, 1.2, 1], transition: { repeat: Infinity, repeatType: "mirror", duration: 1.5 } } :
-                                    message.emotionalFilter === 'colère' ? { rotate: [-1, 1, -1], transition: { repeat: Infinity, duration: 0.3 } } :
+                                    message.emotionalFilter === 'colère' ? { rotate: [-2, 2, -2], transition: { repeat: Infinity, duration: 0.3 } } :
                                     message.emotionalFilter === 'admiration' ? { scale: [1, 1.1, 1], transition: { repeat: Infinity, duration: 2 } } :
                                     message.emotionalFilter === 'regret' ? { y: [0, -2, 0], transition: { repeat: Infinity, duration: 2.5 } } :
                                     message.emotionalFilter === 'joie' ? { rotate: [-5, 0, 5, 0], transition: { repeat: Infinity, duration: 1 } } :
                                     message.emotionalFilter === 'tristesse' ? { y: [0, 2, 0], transition: { repeat: Infinity, duration: 3 } } :
                                     {}
                                   }
+                                  whileHover={{ scale: 1.1 }}
                                 >
+                                  <span className="text-xl">
                                   {message.sender.identityRevealed && message.sender.emoji 
                                     ? message.sender.emoji 
                                     : message.emotionalFilter === 'amour' ? '❤️' :
@@ -1296,9 +1330,10 @@ export default function Dashboard() {
                                       message.emotionalFilter === 'joie' ? '😄' :
                                       message.emotionalFilter === 'tristesse' ? '😢' :
                                       '👤'}
+                                  </span>
                                 </motion.div>
                                 <div>
-                                  <h4 className={`font-medium 
+                                  <h4 className={`font-medium text-lg
                                     ${message.emotionalFilter === 'amour' ? 'text-pink-200' : 
                                       message.emotionalFilter === 'colère' ? 'text-red-200' : 
                                       message.emotionalFilter === 'admiration' ? 'text-green-200' : 
@@ -1308,30 +1343,23 @@ export default function Dashboard() {
                                       'text-white'
                                     }`}>
                                     {/* Affichage du nom en fonction de l'état de découverte */}
-                                    {message.sender.userDiscovered && message.sender.realUserName 
-                                      ? message.sender.realUserName // Nom d'utilisateur si identité complète découverte
-                                      : message.sender.nameDiscovered && message.sender.nickname
+                                    {message.sender.nameDiscovered && message.sender.nickname
                                         ? message.sender.nickname // Surnom si surnom découvert
                                         : message.sender.identityRevealed
                                           ? "Identité partiellement révélée"
                                       : "Anonyme"}
                                   </h4>
                                   
-                                  {/* Afficher un badge pour indiquer le statut de révélation */}
-                                  {message.sender.identityRevealed && message.sender.nameDiscovered && 
-                                   !message.sender.userDiscovered && message.sender.realUser && 
-                                   !message.sender.riddleSolved && (
-                                    <span className="text-xs bg-purple-900/80 text-purple-100 px-2 py-0.5 rounded-full mt-1 inline-block">
-                                      <FaUser className="inline-block mr-1 text-[10px]" />
-                                      Identité réelle à découvrir
-                                    </span>
-                                  )}
-                                  
-                                  {(message.sender.userDiscovered || message.sender.riddleSolved) && (
-                                    <span className="text-xs bg-green-800/60 text-green-100 px-2 py-0.5 rounded-full mt-1 inline-block">
+                                  {/* Badge pour indiquer que la devinette a été résolue */}
+                                  {message.sender.nameDiscovered && (
+                                    <motion.span 
+                                      initial={{ opacity: 0, scale: 0.8 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      className="text-xs bg-gradient-to-r from-green-800 to-emerald-700 text-green-100 px-2 py-0.5 rounded-full mt-1 inline-block shadow-sm"
+                                    >
                                       <FaCheckCircle className="inline-block mr-1 text-[10px]" />
-                                      Identité complète révélée
-                                    </span>
+                                      Surnom découvert
+                                    </motion.span>
                                   )}
                                   
                                   <span className="text-xs text-gray-light block mt-1">
@@ -1342,7 +1370,7 @@ export default function Dashboard() {
                               
                               {!message.read && (
                                 <motion.span 
-                                  className="bg-primary px-2 py-1 text-xs rounded-full"
+                                  className="bg-gradient-to-r from-primary to-purple-600 px-3 py-1 text-xs rounded-full shadow-lg shadow-primary/30"
                                   animate={{ scale: [1, 1.1, 1] }}
                                   transition={{ repeat: Infinity, duration: 1.5 }}
                                 >
@@ -1352,15 +1380,15 @@ export default function Dashboard() {
                             </div>
                             
                             {/* Contenu du message stylisé selon l'émotion */}
-                            <div className="p-4">
+                            <div className="p-5">
                               <motion.div 
-                                className={`p-4 rounded-lg mb-4
-                                  ${message.emotionalFilter === 'amour' ? 'bg-pink-950/30 border-l-4 border-pink-600' : 
-                                    message.emotionalFilter === 'colère' ? 'bg-red-950/30 border-l-4 border-red-600' : 
-                                    message.emotionalFilter === 'admiration' ? 'bg-green-950/30 border-l-4 border-green-600' : 
+                                className={`p-5 rounded-lg mb-4 shadow-md
+                                  ${message.emotionalFilter === 'amour' ? 'bg-pink-950/40 border-l-4 border-pink-600' : 
+                                    message.emotionalFilter === 'colère' ? 'bg-red-950/40 border-l-4 border-red-600' : 
+                                    message.emotionalFilter === 'admiration' ? 'bg-green-950/40 border-l-4 border-green-600' : 
                                     message.emotionalFilter === 'regret' ? 'bg-slate-800/70 border-l-4 border-slate-500' : 
-                                    message.emotionalFilter === 'joie' ? 'bg-yellow-950/30 border-l-4 border-yellow-500' : 
-                                    message.emotionalFilter === 'tristesse' ? 'bg-blue-950/30 border-l-4 border-blue-600' : 
+                                    message.emotionalFilter === 'joie' ? 'bg-yellow-950/40 border-l-4 border-yellow-500' : 
+                                    message.emotionalFilter === 'tristesse' ? 'bg-blue-950/40 border-l-4 border-blue-600' : 
                                     'bg-gray-800/60'
                                   }`}
                                 initial={{ opacity: 0, y: 10 }}
@@ -1368,7 +1396,7 @@ export default function Dashboard() {
                                   opacity: 1, 
                                   y: 0,
                                   ...( message.emotionalFilter === 'amour' ? { 
-                                    boxShadow: ["0 0 0 rgba(233, 30, 99, 0)", "0 0 10px rgba(233, 30, 99, 0.3)", "0 0 0 rgba(233, 30, 99, 0)"],
+                                    boxShadow: ["0 0 0 rgba(233, 30, 99, 0)", "0 0 15px rgba(233, 30, 99, 0.4)", "0 0 0 rgba(233, 30, 99, 0)"],
                                     transition: { boxShadow: { repeat: Infinity, duration: 2 } }
                                   } : {}),
                                   ...( message.emotionalFilter === 'colère' ? { 
@@ -1376,7 +1404,7 @@ export default function Dashboard() {
                                     transition: { x: { repeat: Infinity, duration: 0.5, repeatType: "loop" } }
                                   } : {}),
                                   ...( message.emotionalFilter === 'joie' ? {
-                                    backgroundColor: ["rgba(234, 179, 8, 0.1)", "rgba(234, 179, 8, 0.15)", "rgba(234, 179, 8, 0.1)"],
+                                    backgroundColor: ["rgba(234, 179, 8, 0.1)", "rgba(234, 179, 8, 0.2)", "rgba(234, 179, 8, 0.1)"],
                                     transition: { backgroundColor: { repeat: Infinity, duration: 2, repeatType: "mirror" } }
                                   } : {})
                                 }}
@@ -1384,19 +1412,19 @@ export default function Dashboard() {
                               >
                                 {message.emotionalFilter && message.emotionalFilter !== 'neutre' && (
                                   <motion.div 
-                                    className="mb-2 flex items-center"
+                                    className="mb-3 flex items-center"
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.2 }}
                                   >
                                     <motion.span 
-                                      className={`text-xs px-2 py-1 rounded-full inline-flex items-center mb-2
-                                        ${message.emotionalFilter === 'amour' ? 'bg-pink-800/70 text-pink-200' : 
-                                          message.emotionalFilter === 'colère' ? 'bg-red-800/70 text-red-200' : 
-                                          message.emotionalFilter === 'admiration' ? 'bg-green-800/70 text-green-200' : 
-                                          message.emotionalFilter === 'regret' ? 'bg-slate-700/70 text-slate-200' : 
-                                          message.emotionalFilter === 'joie' ? 'bg-yellow-800/70 text-yellow-200' : 
-                                          message.emotionalFilter === 'tristesse' ? 'bg-blue-800/70 text-blue-200' : 
+                                      className={`text-xs px-3 py-1 rounded-full inline-flex items-center mb-2 shadow-sm
+                                        ${message.emotionalFilter === 'amour' ? 'bg-gradient-to-r from-pink-900 to-pink-800 text-pink-200' : 
+                                          message.emotionalFilter === 'colère' ? 'bg-gradient-to-r from-red-900 to-red-800 text-red-200' : 
+                                          message.emotionalFilter === 'admiration' ? 'bg-gradient-to-r from-green-900 to-green-800 text-green-200' : 
+                                          message.emotionalFilter === 'regret' ? 'bg-gradient-to-r from-slate-800 to-slate-700 text-slate-200' : 
+                                          message.emotionalFilter === 'joie' ? 'bg-gradient-to-r from-yellow-900 to-yellow-800 text-yellow-200' : 
+                                          message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-blue-200' : 
                                           'bg-gray-700'
                                         }`}
                                       whileHover={{ scale: 1.05 }}
@@ -1412,7 +1440,7 @@ export default function Dashboard() {
                                   </motion.div>
                                 )}
                                 <motion.p 
-                                  className={`
+                                  className={`text-base leading-relaxed
                                     ${message.emotionalFilter === 'amour' ? 'text-pink-100 font-medium' : 
                                       message.emotionalFilter === 'colère' ? 'text-red-100 font-bold uppercase' : 
                                       message.emotionalFilter === 'admiration' ? 'text-green-100' : 
@@ -1429,136 +1457,203 @@ export default function Dashboard() {
                                 </motion.p>
                               </motion.div>
                               
-                              {/* Affichage du message vocal si disponible */}
+                              {/* Affichage du message vocal si disponible - Lecteur audio amélioré */}
                               {message.hasVoiceMessage && (
-                                <div className="mt-2 mb-4">
-                                  <div className="flex items-center bg-gray-800 p-2 rounded-lg">
-                                    <button
+                                <div className="mt-3 mb-4">
+                                  <div className="flex items-center bg-gray-800/80 backdrop-blur-sm p-3 rounded-lg shadow-md border border-gray-700">
+                                    <motion.button
                                       onClick={() => toggleAudioPlayback(message._id)}
-                                      className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mr-3 hover:bg-primary/30 transition"
+                                      className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg transition-all duration-300 
+                                        ${message.isPlaying ? 
+                                          'bg-gradient-to-r from-primary to-purple-700 shadow-primary/40' : 
+                                          'bg-gradient-to-r from-gray-700 to-gray-900 hover:from-primary/80 hover:to-purple-700/80'
+                                        }`}
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.95 }}
                                     >
                                       {message.isPlaying ? (
-                                        <FaPause className="text-primary" />
+                                        <FaPause className="text-white" />
                                       ) : (
-                                        <FaPlay className="text-primary" />
+                                        <FaPlay className="text-white ml-1" />
                                       )}
-                                    </button>
+                                    </motion.button>
                                     <div className="flex-1">
-                                      <div className="text-xs text-gray-light mb-1 flex justify-between">
-                                        <span>Message vocal</span>
+                                      <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm font-medium text-white">Message vocal</span>
                                         {message.voiceFilter && message.voiceFilter !== "normal" && (
-                                          <span className="text-primary font-medium">
-                                            Filtre: {message.voiceFilter === "aiguë" ? "Aigu" : 
-                                                   message.voiceFilter === "grave" ? "Grave" : 
-                                                   message.voiceFilter === "robot" ? "Robot" : 
-                                                   message.voiceFilter === "echo" ? "Écho" : 
-                                                   message.voiceFilter}
+                                          <span className="text-xs bg-primary/20 text-primary font-medium px-2 py-1 rounded-full">
+                                            {message.voiceFilter === "aiguë" ? "Filtre: Aigu" : 
+                                             message.voiceFilter === "grave" ? "Filtre: Grave" : 
+                                             message.voiceFilter === "robot" ? "Filtre: Robot" : 
+                                             message.voiceFilter === "echo" ? "Filtre: Écho" : 
+                                             `Filtre: ${message.voiceFilter}`}
                                           </span>
                                         )}
                                       </div>
-                                      <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
-                                        <div 
-                                          className={`h-full rounded-full transition-all duration-100 ${
-                                            message.voiceFilter === "aiguë" ? "bg-pink-500" :
-                                            message.voiceFilter === "grave" ? "bg-blue-500" :
-                                            message.voiceFilter === "robot" ? "bg-green-500" :
-                                            message.voiceFilter === "echo" ? "bg-purple-500" :
-                                            "bg-primary"
+                                      <div className="h-2 bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                                        <motion.div 
+                                          className={`h-full rounded-full ${
+                                            message.voiceFilter === "aiguë" ? "bg-gradient-to-r from-pink-500 to-pink-400" :
+                                            message.voiceFilter === "grave" ? "bg-gradient-to-r from-blue-600 to-blue-400" :
+                                            message.voiceFilter === "robot" ? "bg-gradient-to-r from-green-500 to-green-400" :
+                                            message.voiceFilter === "echo" ? "bg-gradient-to-r from-purple-600 to-purple-400" :
+                                            "bg-gradient-to-r from-primary to-purple-400"
                                           }`}
                                           style={{ width: `${message.isPlaying ? audioProgress : 0}%` }}
-                                        ></div>
+                                          animate={message.isPlaying ? {
+                                            boxShadow: ["0 0 5px rgba(139, 92, 246, 0.5)", "0 0 15px rgba(139, 92, 246, 0.8)", "0 0 5px rgba(139, 92, 246, 0.5)"]
+                                          } : {}}
+                                          transition={{ repeat: Infinity, duration: 1.5 }}
+                                        />
                                       </div>
-                                      <div className="mt-1 text-xs text-gray-400 flex justify-between">
-                                        <span>
+                                      <div className="mt-2 text-xs text-gray-300 flex justify-between">
+                                        <motion.span 
+                                          animate={message.isPlaying ? { opacity: [0.7, 1, 0.7] } : {}}
+                                          transition={{ repeat: Infinity, duration: 1.5 }}
+                                        >
                                           {message.isPlaying && playingAudio === message._id && audioPlayerRef.current ? 
                                             formatTime(audioPlayerRef.current.currentTime) : "00:00"}
-                                        </span>
-                                        <span>
+                                        </motion.span>
+                                        <motion.span>
                                           {message.isPlaying && playingAudio === message._id && audioPlayerRef.current ? 
                                             formatTime(audioPlayerRef.current.duration || 0) : 
-                                            message.isPlaying ? "Chargement..." : ""}
-                                        </span>
+                                            message.isPlaying ? 
+                                              <motion.span 
+                                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                                transition={{ repeat: Infinity, duration: 1 }}
+                                              >
+                                                Chargement...
+                                              </motion.span> : ""}
+                                        </motion.span>
                                       </div>
                                     </div>
                                   </div>
                                 </div>
                               )}
                               
-                              {/* Analyse IA */}
+                              {/* Affichage des indices si le surnom a été découvert */}
+                              {message.sender && message.sender.nameDiscovered && message.clues && (
+                                <motion.div 
+                                  className="mt-4 p-4 bg-gray-800/60 backdrop-blur-sm rounded-lg border border-gray-700"
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  <h4 className="text-sm font-medium text-primary-light mb-2 flex items-center">
+                                    <FaLightbulb className="mr-2" />
+                                    Indices laissés par l'expéditeur
+                                  </h4>
+                                  
+                                  <div className="space-y-2">
+                                    {message.clues.emoji && (
+                                      <div className="flex items-center">
+                                        <span className="text-xs text-gray-400 w-20">Emoji:</span>
+                                        <span className="text-lg">{message.clues.emoji}</span>
+                                </div>
+                              )}
+                              
+                                    {message.clues.hint && (
+                                      <div className="flex items-start">
+                                        <span className="text-xs text-gray-400 w-20">Indice:</span>
+                                        <span className="text-sm text-gray-200">{message.clues.hint}</span>
+                                </div>
+                              )}
+                              
+                                    {!message.clues.emoji && !message.clues.hint && (
+                                      <div className="text-sm text-gray-400 italic">
+                                        Aucun indice laissé par l'expéditeur
+                                    </div>
+                                  )}
+                                </div>
+                                </motion.div>
+                              )}
+                              
+                              {/* Affichage de l'analyse du message si disponible */}
                               {message.aiAnalysis && (
-                                <div className="mt-3 mb-4 p-3 bg-gray-800 rounded-lg">
-                                  <p className="text-xs text-primary mb-1">Analyse IA</p>
-                                  <p className="text-sm mb-2">{message.aiAnalysis.summary}</p>
-                                  {message.aiAnalysis.suggestionForReply && (
-                                    <p className="text-xs text-gray-light">
-                                      Suggestion: {message.aiAnalysis.suggestionForReply}
+                                <motion.div 
+                                  className="mt-4 p-4 bg-blue-900/30 backdrop-blur-sm rounded-lg border border-blue-800/50"
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  <h4 className="text-sm font-medium text-blue-300 mb-2 flex items-center">
+                                    <FaBrain className="mr-2" />
+                                    Analyse du message
+                                  </h4>
+                                  
+                                  {typeof message.aiAnalysis === 'string' ? (
+                                    <p className="text-sm text-gray-200">
+                                      {message.aiAnalysis}
                                     </p>
-                                  )}
-                                </div>
-                              )}
-                              
-                              {(message.clues?.hint || message.clues?.riddle) && !message.sender.identityRevealed && (
-                                <div className="mt-4 pt-4 border-t border-gray-800">
-                                  <p className="text-sm text-gray-light mb-2">
-                                    Ce message contient des indices cachés que vous pouvez découvrir
-                                  </p>
-                                  
-                                  {message.clues?.hint && (
-                                    <div className="bg-gray-800 rounded-lg p-2 text-center mb-2">
-                                      <span className="text-xs text-primary">🔎 Indice disponible</span>
+                                  ) : (
+                                    <div className="space-y-3">
+                                      {message.aiAnalysis.emotionalIntent && (
+                                        <div>
+                                          <h5 className="text-xs font-medium text-blue-200">Intention émotionnelle:</h5>
+                                          <p className="text-sm text-gray-200">{message.aiAnalysis.emotionalIntent}</p>
+                                        </div>
+                                      )}
+                                      
+                                      {message.aiAnalysis.summary && (
+                                        <div>
+                                          <h5 className="text-xs font-medium text-blue-200">Résumé:</h5>
+                                          <p className="text-sm text-gray-200">{message.aiAnalysis.summary}</p>
                                     </div>
                                   )}
                                   
-                                  {message.clues?.riddle && (
-                                    <div className="bg-gray-800 rounded-lg p-2 text-center">
-                                      <span className="text-xs text-primary">🎮 Devinette disponible</span>
+                                      {message.aiAnalysis.suggestionForReply && (
+                                        <div>
+                                          <h5 className="text-xs font-medium text-blue-200">Suggestion de réponse:</h5>
+                                          <p className="text-sm text-gray-200">{message.aiAnalysis.suggestionForReply}</p>
                                     </div>
                                   )}
                                 </div>
                               )}
+                                </motion.div>
+                              )}
                               
-                              <div className="mt-4 flex justify-end space-x-2">
-                                {/* Bouton de partage */}
-                                <button 
-                                  className="btn-sm bg-green-700 hover:bg-green-600 transition flex items-center"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                              {/* Boutons d'action pour le message */}
+                              <div className="mt-4 flex items-center justify-between gap-3">
+                                {/* Bouton Découvrir - affiché seulement si le surnom n'a pas été découvert */}
+                                {(!message.sender || !message.sender.nameDiscovered) && (
+                                  <motion.button
+                                    onClick={() => openRevealModal(message)}
+                                    className="flex-1 py-2 px-3 bg-gradient-to-r from-primary/20 to-purple-600/20 hover:from-primary/30 hover:to-purple-600/30 backdrop-blur-sm rounded-lg border border-primary/30 text-primary-light flex items-center justify-center transition-all duration-300"
+                                    whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(139, 92, 246, 0.3)" }}
+                                    whileTap={{ scale: 0.98 }}
+                                >
+                                    <FaEye className="mr-2" />
+                                    <span className="font-medium">Découvrir</span>
+                                  </motion.button>
+                                )}
+                                
+                                {/* Bouton Analyser - affiché seulement si le message n'a pas déjà été analysé */}
+                                {!message.analyzed && (
+                                  <motion.button
+                                    onClick={() => analyzeMessage(message._id)}
+                                    className="flex-1 py-2 px-3 bg-gradient-to-r from-blue-600/20 to-cyan-500/20 hover:from-blue-600/30 hover:to-cyan-500/30 backdrop-blur-sm rounded-lg border border-blue-500/30 text-blue-300 flex items-center justify-center transition-all duration-300"
+                                    whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(59, 130, 246, 0.3)" }}
+                                    whileTap={{ scale: 0.98 }}
+                                  >
+                                    <FaBrain className="mr-2" />
+                                    <span className="font-medium">Analyser</span>
+                                  </motion.button>
+                                )}
+                                
+                                {/* Bouton Partager - ouvre un modal avec juste le message */}
+                                <motion.button
+                                  onClick={() => {
+                                    // Afficher un modal avec juste le message
                                     setSelectedMessage(message);
                                     setShowShareModal(true);
                                   }}
-                                >
-                                  <FaShareAlt className="mr-2" size={12} />
-                                  Partager
-                                </button>
-                                
-                                {/* Bouton d'analyse IA */}
-                                {!message.aiAnalysis && (
-                                  <button 
-                                    className="btn-sm bg-blue-700 hover:bg-blue-600 transition flex items-center"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      analyzeMessage(message._id);
-                                    }}
+                                  className="flex-1 py-2 px-3 bg-gradient-to-r from-green-600/20 to-emerald-500/20 hover:from-green-600/30 hover:to-emerald-500/30 backdrop-blur-sm rounded-lg border border-green-500/30 text-green-300 flex items-center justify-center transition-all duration-300"
+                                  whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(16, 185, 129, 0.3)" }}
+                                  whileTap={{ scale: 0.98 }}
                                   >
-                                    <span className="mr-1">🤖</span>
-                                    Analyser
-                                  </button>
-                                )}
-                                
-                                                                  {/* Bouton de révélation */}
-                                 {(!message.sender.userDiscovered && (message.sender.realUser || !message.sender.nameDiscovered)) && 
-                                  !message.sender.riddleSolved && (
-                                  <button 
-                                    className="btn-sm bg-purple-700 hover:bg-purple-600 transition flex items-center"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openRevealModal(message);
-                                    }}
-                                  >
-                                    <FaKey className="mr-2" size={12} />
-                                    Découvrir
-                                  </button>
-                                )}
+                                  <FaShareAlt className="mr-2" />
+                                  <span className="font-medium">Partager</span>
+                                </motion.button>
                               </div>
                             </div>
                           </motion.div>
