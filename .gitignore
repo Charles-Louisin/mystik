@@ -10,6 +10,7 @@
 !.yarn/releases
 !.yarn/versions
 /backend
+fix-backend-env.sh
 
 # testing
 /coverage
