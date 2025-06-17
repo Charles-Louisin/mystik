@@ -51,14 +51,14 @@ const upload = multer({
 // Importer OpenAI pour l'analyse des messages
 const OpenAI = require('openai');
 
-// Définir directement la clé API OpenAI (à remplacer par votre vraie clé)
-const OPENAI_API_KEY = "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";
+// Utiliser la clé API OpenAI depuis les variables d'environnement
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 let openai = null;
 
 // Initialiser OpenAI avec la clé définie ci-dessus
 if (OPENAI_API_KEY) {
-  console.log("Initialisation d'OpenAI avec la clé définie directement dans le code");
+  console.log("Initialisation d'OpenAI avec la clé définie dans les variables d'environnement");
   openai = new OpenAI({
     apiKey: OPENAI_API_KEY
   });

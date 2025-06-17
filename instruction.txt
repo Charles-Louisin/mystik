@@ -1,11 +1,8 @@
 application de messagerie anonyme: MYSTIK
 ---
 
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/mystik
-JWT_SECRET=f8b5a62d9e7c3a1d4b6e8f0a2c5d9b7e4f1a3c6d8b5a2e9f7
-NODE_ENV=developmentNODE_ENV=development
-OPENAI_API_KEY=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
+
+
 
 
 
@@ -18,14 +15,14 @@ Peut :
 Recevoir des messages anonymes
 Lire tous les indices laissés par les expéditeurs
 Débloquer des infos supplémentaires s’il paye (prénom, IP, ville, etc.)
-Participer à des jeux du style “Qui m’a écrit ?”
+Participer à des jeux du style "Qui m'a écrit ?"
 
 
- 2. UTILISATEUR SANS COMPTE (l’expéditeur)
-Peut uniquement envoyer un message anonyme à quelqu’un qui a partagé son lien
-Avant d’envoyer le message :
-Il voit un popup d’explication fun :
-> “Laisse un ou plusieurs indices pour que la personne essaie de deviner qui tu es !”
+ 2. UTILISATEUR SANS COMPTE (l'expéditeur)
+Peut uniquement envoyer un message anonyme à quelqu'un qui a partagé son lien
+Avant d'envoyer le message :
+Il voit un popup d'explication fun :
+> "Laisse un ou plusieurs indices pour que la personne essaie de deviner qui tu es !"
 
 
 Il peut remplir des champs facultatifs :
@@ -36,70 +33,70 @@ Une devinette
 
 
 Pas de réponse possible sans compte
-Pas d’info affichée sans consentement
+Pas d'info affichée sans consentement
 
- 3. S’il veut aussi recevoir des messages :
+ 3. S'il veut aussi recevoir des messages :
 Il doit créer un compte et activer sa propre boîte
 
 ---DIFFÉRENTES FONCTIONNALITÉS À IMPLEMENTER:
  1. Révélations sous conditions créatives (pas juste paiement)
-> L’identité de l’expéditeur peut être révélée si :
+> L'identité de l'expéditeur peut être révélée si :
 
 
-Le destinataire devine la bonne réponse à une question posée par l’expéditeur
-Il joue à un mini-jeu ou parie sur qui c’est parmi ses contacts
+Le destinataire devine la bonne réponse à une question posée par l'expéditeur
+Il joue à un mini-jeu ou parie sur qui c'est parmi ses contacts
 Il accomplit un défi social (ex : poster un message en retour public)
 
- Cela rend l’expérience plus ludique que purement transactionnelle (paiement).
+ Cela rend l'expérience plus ludique que purement transactionnelle (paiement).
 
 ---
  2. Filtres émotionnels ou vocaux
-> Avant d’envoyer un message, l’auteur choisit un filtre émotionnel : colère, amour, admiration, regret…
+> Avant d'envoyer un message, l'auteur choisit un filtre émotionnel : colère, amour, admiration, regret…
 
 
- L’interface s’adapte : couleurs, sons, typo…Tu peux même permettre d’envoyer un message vocal anonyme, avec un effet de voix modifiée (robot, grave, enfant, etc.).
+ L'interface s'adapte : couleurs, sons, typo…Tu peux même permettre d'envoyer un message vocal anonyme, avec un effet de voix modifiée (robot, grave, enfant, etc.).
 
 ---
  3. Profil psychologique public basé sur les messages reçus
-> Une IA génère un “profil émotionnel” de toi basé sur les messages que tu reçois :
+> Une IA génère un "profil émotionnel" de toi basé sur les messages que tu reçois :
 
 
-“Tu inspires la confiance”
-“Les gens pensent que tu es inspirant”
-“Tu fais rire”
+"Tu inspires la confiance"
+"Les gens pensent que tu es inspirant"
+"Tu fais rire"
 
- Cela flatte l’ego, pousse au partage sur les réseaux sociaux et crée de la curiosité virale.
+ Cela flatte l'ego, pousse au partage sur les réseaux sociaux et crée de la curiosité virale.
 
 ---
- 4. Masques personnalisés pour l’anonymat
+ 4. Masques personnalisés pour l'anonymat
 > Les gens envoient des messages avec un avatar ou masque anonyme personnalisé (style IA générée ou filtre Snapchat style).
 
 
- Bonus : vendre des “masques premium” ou des effets pour customiser ton message.
+ Bonus : vendre des "masques premium" ou des effets pour customiser ton message.
 
 ---
- 5. “Clés de révélation” que tu peux gagner
-> Au lieu de payer, tu peux gagner ou échanger des clés pour révéler l’identité d’un expéditeur :
+ 5. "Clés de révélation" que tu peux gagner
+> Au lieu de payer, tu peux gagner ou échanger des clés pour révéler l'identité d'un expéditeur :
 
 
 En regardant une pub (rewarded ads)
 En parrainant un ami
 En partageant ton profil sur Insta/TikTok
 
- Gamifie et viralise l’usage.
+ Gamifie et viralise l'usage.
 
 ---
  6. Mur public avec les meilleurs messages anonymes
-> Les utilisateurs peuvent publier certains messages reçus sur un “Hall of Fame”.
+> Les utilisateurs peuvent publier certains messages reçus sur un "Hall of Fame".
 
 
 Votés par la communauté
-Modérés automatiquement avec l’IA
+Modérés automatiquement avec l'IA
 
  Cela crée du contenu auto-généré à fort potentiel viral.
 
 ---
- 7. “Messages du futur”
+ 7. "Messages du futur"
 > Envoie un message anonyme qui ne pourra être lu que dans 1 jour / 1 mois / 1 an.
 
 
@@ -107,24 +104,24 @@ Modérés automatiquement avec l’IA
 
 ---
  8. Intégration avec IA (type ChatGPT)
-> L’IA peut :
+> L'IA peut :
 
 
-T’aider à répondre à un message anonymement
+T'aider à répondre à un message anonymement
 Résumer les messages que tu reçois
-Traduire l’intention émotionnelle du message
+Traduire l'intention émotionnelle du message
 
- Ajoute une touche “intelligente” et personnalisée.
+ Ajoute une touche "intelligente" et personnalisée.
 
 ---
- 9. “Radar émotionnel local” (sans géolocalisation précise)
-> Exemple : “5 personnes dans ta ville ont reçu un message de pardon aujourd’hui.” Ça donne l’impression d’une communauté vivante sans violer la vie privée.
+ 9. "Radar émotionnel local" (sans géolocalisation précise)
+> Exemple : "5 personnes dans ta ville ont reçu un message de pardon aujourd'hui." Ça donne l'impression d'une communauté vivante sans violer la vie privée.
 
 
 
 ---
  10. Révélation partielle (blur / flou)
-> Plutôt que de tout dévoiler d’un coup, propose :
+> Plutôt que de tout dévoiler d'un coup, propose :
 
 
 Voir la première lettre du prénom
@@ -133,7 +130,7 @@ Avoir un indice géographique très vague ("Île-de-France", "Canada Est", etc.)
 
  Plus intrigant, plus de clics, plus de paiement.
 ---
-Quelle méthode d’inscription choisir ?
+Quelle méthode d'inscription choisir ?
 Option 1 — Rapide & Fun : Login via numéro de téléphone (OTP)
 Rapide pour les jeunes
 Tu peux récupérer leur localisation approximative via IP + code pays
