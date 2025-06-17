@@ -1,12 +1,5 @@
 application de messagerie anonyme: MYSTIK
 ---
-
-
-
-
-
-
-
 Nouveau fonctionnement (version améliorée)
  1. UTILISATEUR AVEC COMPTE (le destinataire)
 Crée un compte
