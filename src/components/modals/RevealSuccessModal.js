@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaUser, FaSms, FaBell, FaKey, FaCheck, FaTimes as FaTimesIcon, FaLightbulb, FaQuestion, FaUnlock } from 'react-icons/fa';
+import { FaTimes, FaUser, FaSms, FaBell, FaKey, FaCheck, FaTimes as FaTimesIcon, FaLightbulb, FaQuestion, FaUnlock, FaCheckCircle } from 'react-icons/fa';
 import confetti from 'canvas-confetti';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -40,9 +40,26 @@ const RevealSuccessModal = ({
       console.log("Modal ouvert avec messageId:", messageId);
       console.log("Informations du sender:", senderInfo);
       
-      // Débogage supplémentaire
-      if (senderInfo && senderInfo.nickname) {
-        console.log("Surnom de l'expéditeur:", senderInfo.nickname);
+      // Débogage supplémentaire pour l'identité révélée
+      if (senderInfo) {
+        console.log("État de révélation:", {
+          nameDiscovered: senderInfo.nameDiscovered,
+          userDiscovered: senderInfo.userDiscovered,
+          realUser: senderInfo.realUser,
+          realUserName: senderInfo.realUserName
+        });
+        
+        // Définir l'état nameRevealed si le nom a déjà été découvert
+        if (senderInfo.nameDiscovered) {
+          setNameRevealed(true);
+        }
+        
+        // Définir l'état userIdentityRevealed UNIQUEMENT si l'utilisateur a déjà été découvert
+        // Ne pas le définir si seulement la devinette a été résolue
+        if (senderInfo.userDiscovered) {
+          setUserIdentityRevealed(true);
+          console.log("Identité utilisateur révélée - État défini à true");
+        }
       }
       
       // Réinitialiser les états à chaque ouverture du modal
@@ -50,30 +67,81 @@ const RevealSuccessModal = ({
       setRiddleAnswer('');
       setGuessResult(null);
       setRiddleResult(null);
-      setNameRevealed(false);
       setGuessType('nickname');
       setGuessResponseMessage('');
-      setShowRiddle(false);
+      
+      // Vérifier si une devinette est disponible et l'afficher
+      if (senderInfo && senderInfo.riddle && senderInfo.riddle.question && !senderInfo.riddleSolved) {
+        console.log("Devinette disponible:", senderInfo.riddle.question);
+        setShowRiddle(true);
+        setShowForm(false);
+      } else {
+        setShowRiddle(false);
+        
+        // Si le nom est découvert mais pas l'utilisateur réel, et qu'il y a un utilisateur réel à découvrir,
+        // afficher directement le formulaire de devinette avec le type 'user'
+        if (senderInfo && senderInfo.nameDiscovered && !senderInfo.userDiscovered && senderInfo.realUser) {
+          setShowForm(true);
+          setGuessType('user');
+          setNameRevealed(false);
+          console.log("Affichage du formulaire pour deviner l'utilisateur réel");
+        } else {
+          // Sinon, afficher le formulaire standard
+          setShowForm(true);
+        }
+      }
       
       // Initialiser les indices découverts à partir des données du sender
       if (senderInfo && senderInfo.discoveredHints && Array.isArray(senderInfo.discoveredHints)) {
         console.log("Initialisation des indices à partir des données:", senderInfo.discoveredHints);
         setObtainedHints(senderInfo.discoveredHints);
-        
-        // Si des indices sont disponibles, montrer le formulaire
-        if (senderInfo.discoveredHints.length > 0) {
-          setShowForm(true);
-        }
       } else {
-        // Réinitialiser les indices si pas de données
-        setObtainedHints([]);
-        setShowForm(false);
+        // Essayer de récupérer les indices depuis le localStorage
+        try {
+          const savedHints = localStorage.getItem(`hints_${messageId}`);
+          if (savedHints) {
+            const parsedHints = JSON.parse(savedHints);
+            console.log("Indices récupérés depuis le localStorage:", parsedHints);
+            setObtainedHints(parsedHints);
+          } else {
+            // Réinitialiser les indices si pas de données
+            setObtainedHints([]);
+          }
+        } catch (error) {
+          console.error("Erreur lors de la récupération des indices depuis le localStorage:", error);
+          setObtainedHints([]);
+        }
       }
       
       fetchUserKeys();
       fetchDiscoveredHints();
     }
   }, [isOpen, messageId, senderInfo]);
+  
+  // Effet supplémentaire pour s'assurer que les indices sont chargés à chaque ouverture du modal
+  useEffect(() => {
+    if (isOpen && messageId) {
+      console.log("Modal ouvert - Vérification des indices en localStorage");
+      
+      // Essayer de récupérer les indices depuis le localStorage
+      try {
+        const savedHints = localStorage.getItem(`hints_${messageId}`);
+        if (savedHints) {
+          const parsedHints = JSON.parse(savedHints);
+          console.log("Indices récupérés depuis le localStorage (effet supplémentaire):", parsedHints);
+          
+          // Si les indices du localStorage sont plus nombreux que ceux déjà chargés, les utiliser
+          if (parsedHints.length > 0 && (!obtainedHints || parsedHints.length > obtainedHints.length)) {
+            console.log("Mise à jour des indices avec ceux du localStorage");
+            setObtainedHints(parsedHints);
+            setShowForm(true);
+          }
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des indices depuis le localStorage (effet supplémentaire):", error);
+      }
+    }
+  }, [isOpen, messageId]);
   
   // Récupérer le nombre de clés que l'utilisateur possède
   const fetchUserKeys = async () => {
@@ -110,28 +178,84 @@ const RevealSuccessModal = ({
         ? 'http://localhost:5000' 
         : window.location.origin;
       
+      // Récupérer les indices depuis le serveur
       const { data } = await axios.get(
         `${apiBaseUrl}/api/messages/${messageId}/hints`,
         { headers: { Authorization: `Bearer ${token}` }}
       );
       
-      console.log("Indices déjà découverts:", data.hints);
+      console.log("Indices récupérés depuis le serveur:", data.hints);
       
+      // Récupérer également les indices stockés localement
+      let localHints = [];
+      try {
+        const savedHints = localStorage.getItem(`hints_${messageId}`);
+        if (savedHints) {
+          localHints = JSON.parse(savedHints);
+          console.log("Indices récupérés depuis le localStorage:", localHints);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des indices depuis le localStorage:", error);
+      }
+      
+      // Fusionner les indices du serveur et du localStorage
+      let mergedHints = [];
+      
+      // Commencer avec les indices du serveur
       if (data.hints && Array.isArray(data.hints)) {
-        setObtainedHints(data.hints);
+        mergedHints = [...data.hints];
+      }
+      
+      // Ajouter les indices du localStorage qui ne sont pas déjà présents
+      if (localHints.length > 0) {
+        localHints.forEach(localHint => {
+          // Vérifier si cet indice existe déjà dans les indices fusionnés
+          const exists = mergedHints.some(
+            hint => hint.type === localHint.type && hint.value === localHint.value
+          );
+          
+          if (!exists) {
+            mergedHints.push(localHint);
+          }
+        });
+      }
+      
+      console.log("Indices fusionnés:", mergedHints);
+      
+      // Mettre à jour l'état avec les indices fusionnés
+      if (mergedHints.length > 0) {
+        setObtainedHints(mergedHints);
         
         // Si des indices sont disponibles, montrer le formulaire
-        if (data.hints.length > 0) {
-          setShowForm(true);
-        }
+        setShowForm(true);
         
-        // Mettre à jour les statistiques d'indices
-        if (data.hintStats) {
-          setHintStats(data.hintStats);
-        }
+        // Sauvegarder les indices fusionnés dans le localStorage
+        localStorage.setItem(`hints_${messageId}`, JSON.stringify(mergedHints));
+      }
+      
+      // Mettre à jour les statistiques d'indices
+      if (data.hintStats) {
+        setHintStats(data.hintStats);
       }
     } catch (error) {
       console.error("Erreur lors de la récupération des indices:", error);
+      
+      // En cas d'erreur, essayer de récupérer les indices depuis le localStorage
+      try {
+        const savedHints = localStorage.getItem(`hints_${messageId}`);
+        if (savedHints) {
+          const parsedHints = JSON.parse(savedHints);
+          console.log("Indices récupérés depuis le localStorage (fallback):", parsedHints);
+          setObtainedHints(parsedHints);
+          
+          // Si des indices sont disponibles, montrer le formulaire
+          if (parsedHints.length > 0) {
+            setShowForm(true);
+          }
+        }
+      } catch (localError) {
+        console.error("Erreur lors de la récupération des indices depuis le localStorage (fallback):", localError);
+      }
     } finally {
       setIsLoadingHints(false);
     }
@@ -228,6 +352,9 @@ const RevealSuccessModal = ({
           });
           setObtainedHints(newHints);
           
+          // Sauvegarder immédiatement dans le localStorage
+          localStorage.setItem(`hints_${messageId}`, JSON.stringify(newHints));
+          
           // Notification de succès
           toast.success("Bravo ! Vous avez obtenu un indice supplémentaire !");
         } else {
@@ -239,8 +366,18 @@ const RevealSuccessModal = ({
           });
           setObtainedHints(newHints);
           
+          // Sauvegarder immédiatement dans le localStorage
+          localStorage.setItem(`hints_${messageId}`, JSON.stringify(newHints));
+          
           // Notification de succès
           toast.success("Devinette réussie !");
+        }
+        
+        // Marquer la devinette comme résolue pour que le bouton "Découvrir" et le badge disparaissent
+        if (senderInfo) {
+          senderInfo.riddleSolved = true;
+          // Ne pas définir userIdentityRevealed à true pour permettre de deviner l'utilisateur réel ensuite
+          console.log("Devinette résolue - riddleSolved défini à true", senderInfo);
         }
         
         // Fermer la devinette et montrer le formulaire de devinette de nom
@@ -343,7 +480,11 @@ const RevealSuccessModal = ({
         };
         
         // Mettre à jour l'état avec une nouvelle référence pour garantir un re-rendu
-        setObtainedHints(prev => [...prev, newHint]);
+        const updatedHints = [...obtainedHints, newHint];
+        setObtainedHints(updatedHints);
+        
+        // Sauvegarder immédiatement dans le localStorage
+        localStorage.setItem(`hints_${messageId}`, JSON.stringify(updatedHints));
         
         // Mettre à jour le nombre de clés
         setUserKeys(prev => prev - 1);
@@ -358,12 +499,6 @@ const RevealSuccessModal = ({
         
         // Montrer le formulaire de devinette si ce n'est pas déjà fait
         setShowForm(true);
-        
-        // Ne pas rafraîchir les indices depuis le serveur immédiatement
-        // pour éviter que l'indice nouvellement obtenu ne disparaisse
-        // setTimeout(() => {
-        //   fetchDiscoveredHints();
-        // }, 500);
       } else if (data && data.message === 'no_hints_available') {
         // Pas d'indices disponibles
         setHintStats(prev => ({
@@ -434,6 +569,11 @@ const RevealSuccessModal = ({
         
         // Notification de succès
         toast.success("Félicitations ! Vous avez trouvé le bon surnom !");
+        
+        // Si c'est un utilisateur réel, on peut maintenant deviner son identité
+        if (senderInfo && senderInfo.realUser) {
+          console.log("Surnom découvert pour un utilisateur réel - Possibilité de deviner l'identité réelle");
+        }
       } else {
         toast.error("Ce n'est pas le bon surnom. Essayez à nouveau.");
       }
@@ -563,10 +703,11 @@ const RevealSuccessModal = ({
       if (response.data && response.data.sender) {
         if (senderInfo) {
           // Mettre à jour toutes les propriétés importantes
-        senderInfo.userDiscovered = true;
+          senderInfo.userDiscovered = true;
           senderInfo.realUserName = response.data.sender.realUserName || guessName;
           senderInfo.uniqueLink = response.data.sender.uniqueLink;
           senderInfo.realUserId = response.data.sender.realUserId || response.data.sender._id;
+          senderInfo.riddleSolved = true; // Marquer la devinette comme résolue
           
           // Mettre à jour d'autres propriétés si elles sont présentes dans la réponse
           if (response.data.sender.displayName) {
@@ -593,32 +734,72 @@ const RevealSuccessModal = ({
   
   // Fonction pour gérer la fermeture du modal et s'assurer que les changements sont propagés
   const handleClose = () => {
-    // Si le nom ou l'utilisateur a été découvert, on appelle onSuccessClose pour rafraîchir les messages
-    if ((nameRevealed || userIdentityRevealed) && onSuccessClose) {
-      onSuccessClose();
-      // Forcer un rechargement complet de la page pour s'assurer que tout est à jour
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-    } else {
-      // Appel de la fonction de fermeture normale sans rafraîchissement
+    console.log("Tentative de fermeture du modal");
+    
+    // Conserver les indices découverts dans le localStorage pour les récupérer à la prochaine ouverture
+    if (messageId && obtainedHints.length > 0) {
+      try {
+        // Stocker les indices avec une clé unique par message
+        localStorage.setItem(`hints_${messageId}`, JSON.stringify(obtainedHints));
+        console.log("Indices sauvegardés dans le localStorage pour le message:", messageId);
+      } catch (error) {
+        console.error("Erreur lors de la sauvegarde des indices dans le localStorage:", error);
+      }
+    }
+    
+    // Toujours appeler onClose pour fermer le modal
+    if (onClose) {
       onClose();
+    }
+    
+    // Si le nom ou l'utilisateur a été découvert ou la devinette a été résolue,
+    // on appelle onSuccessClose pour rafraîchir les messages
+    // Cette opération est effectuée après la fermeture du modal pour éviter les problèmes d'état
+    if ((nameRevealed || userIdentityRevealed || (senderInfo && senderInfo.riddleSolved)) && onSuccessClose) {
+      // Appeler la fonction de rafraîchissement des messages sans recharger toute la page
+      setTimeout(() => {
+        onSuccessClose();
+      }, 100);
     }
   };
   
   if (!isOpen) return null;
   
+  // Log de débogage pour comprendre l'état du modal
+  console.log("RevealSuccessModal - État complet:", {
+    isOpen,
+    userIdentityRevealed,
+    nameRevealed,
+    senderInfo: {
+      riddleSolved: senderInfo?.riddleSolved,
+      userDiscovered: senderInfo?.userDiscovered,
+      nameDiscovered: senderInfo?.nameDiscovered,
+      realUserName: senderInfo?.realUserName,
+      nickname: senderInfo?.nickname
+    }
+  });
+  
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        // Fermer le modal quand on clique sur l'arrière-plan
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         className="bg-gray-900 rounded-lg p-6 w-full max-w-md relative max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()} // Empêcher la propagation du clic
       >
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-white z-10"
+          aria-label="Fermer"
         >
           <FaTimes />
         </button>
@@ -652,6 +833,8 @@ const RevealSuccessModal = ({
           ))}
         </div>
         
+        {/* Affichage conditionnel en fonction de l'état de révélation */}
+        {console.log("État actuel:", { userIdentityRevealed, nameRevealed, riddleSolved: senderInfo?.riddleSolved })}
         {userIdentityRevealed ? (
           // Affichage pour la découverte complète de l'identité de l'utilisateur
           <motion.div
@@ -684,7 +867,7 @@ const RevealSuccessModal = ({
               className="mb-6"
             >
               Vous avez découvert l'identité complète de l'utilisateur qui vous a envoyé ce message.
-              C'est bien <span className="font-bold text-green-400">{senderInfo.realUserName || guessName}</span> !
+              C'est bien <span className="font-bold text-green-400">{senderInfo.realUserName || guessName || (senderInfo.realUser ? senderInfo.nickname : "Anonyme")}</span> !
             </motion.p>
             
             <motion.div
@@ -709,7 +892,7 @@ const RevealSuccessModal = ({
               
               <div className="mb-2">
                 <span className="text-xs text-gray-light">Nom d'utilisateur:</span>
-                <p className="text-sm">{senderInfo.realUserName || guessName}</p>
+                <p className="text-sm">{senderInfo.realUserName || guessName || (senderInfo.realUser ? senderInfo.nickname : "Anonyme")}</p>
               </div>
               
               {senderInfo.hint && (
@@ -780,33 +963,26 @@ const RevealSuccessModal = ({
             </motion.p>
             
             {/* Affichage spécial si l'utilisateur peut encore découvrir l'identité réelle */}
-            {senderInfo.realUser && !guessType.includes('user') && (
+            {senderInfo && senderInfo.realUser && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-purple-900/30 p-4 rounded-lg mb-6 border border-purple-500"
+                className="p-4 rounded-lg mb-6 border bg-green-900/30 border-green-500"
               >
-                <h3 className="text-sm font-semibold text-purple-300 mb-2 flex items-center">
-                  <FaLightbulb className="text-yellow-400 mr-2" />
-                  Identité complète à découvrir !
+                <h3 className="text-sm font-semibold mb-2 flex items-center">
+                  <FaCheckCircle className="text-green-400 mr-2" />
+                  <span className="text-green-300">Identité révélée</span>
                 </h3>
-                <p className="text-sm mb-3">
-                  Ce message a été envoyé par un utilisateur inscrit. Vous pouvez maintenant essayer de deviner qui c'est en utilisant son nom d'utilisateur !
-                </p>
-                <button 
-                  onClick={() => {
-                    setGuessName('');
-                    setGuessResult(null);
-                    setGuessResponseMessage('');
-                    setGuessType('user');
-                    setShowForm(true);
-                    setNameRevealed(false);
-                  }}
-                  className="btn-secondary-outline w-full"
-                >
-                  Découvrir l'utilisateur
-                </button>
+                
+                <div className="mb-3">
+                  <p className="text-sm mb-1">
+                    Nom d'utilisateur :
+                  </p>
+                  <p className="text-lg font-medium text-green-300">
+                    {senderInfo.realUserName || senderInfo.nickname || "(Nom non disponible)"}
+                  </p>
+                </div>
               </motion.div>
             )}
             
@@ -845,6 +1021,24 @@ const RevealSuccessModal = ({
             )}
             
             <div className="mt-6">
+              {/* Ajouter un bouton pour deviner l'utilisateur réel si disponible */}
+              {senderInfo && senderInfo.realUser && !senderInfo.userDiscovered && (
+                <motion.button
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  onClick={() => {
+                    setShowForm(true);
+                    setGuessType('user');
+                    setNameRevealed(false);
+                  }}
+                  className="btn-primary w-full mb-3"
+                >
+                  <FaUser className="mr-2" />
+                  Deviner l'utilisateur réel
+                </motion.button>
+              )}
+              
               <motion.button
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -868,7 +1062,7 @@ const RevealSuccessModal = ({
                 <FaQuestion className="text-primary mr-2" />
                 <h4 className="text-primary font-medium">Devinette</h4>
               </div>
-              <p className="text-white mb-6">{senderInfo.riddle.question}</p>
+              <p className="text-white mb-6">{senderInfo?.riddle?.question || "Devinette non disponible"}</p>
               
               {riddleResult === false && (
                 <motion.div 
@@ -923,7 +1117,7 @@ const RevealSuccessModal = ({
                 <button 
                   onClick={() => {
                     setShowRiddle(false);
-                    setShowForm(false);
+                    setShowForm(true);
                   }}
                   className="btn-outline flex-1"
                 >
@@ -968,31 +1162,7 @@ const RevealSuccessModal = ({
                       <h5 className="text-xs uppercase text-yellow-400 mb-2 font-semibold">Lettres du surnom</h5>
                       <div className="flex flex-wrap gap-2">
                         {obtainedHints
-                          .filter(hint => {
-                            // N'accepter que la première et dernière lettre
-                            if (hint.type === 'letter_first' || hint.type === 'letter_last') {
-                              return true;
-                            }
-                            
-                            // Pour les indices letter_X, vérifier s'il s'agit de la position 0 (première) ou dernière
-                            if (hint.type && hint.type.startsWith('letter_')) {
-                              const posMatch = hint.type.match(/letter_(\d+)/);
-                              if (posMatch) {
-                                const position = parseInt(posMatch[1]);
-                                
-                                // Si le surnom existe, vérifier si c'est la première ou dernière position
-                                if (senderInfo && senderInfo.nickname) {
-                                  const nicknameLength = senderInfo.nickname.length;
-                                  return position === 0 || position === nicknameLength - 1;
-                                }
-                                
-                                // Si on n'a pas accès au surnom, garder uniquement la première position
-                                return position === 0;
-                              }
-                            }
-                            
-                            return false;
-                          })
+                          .filter(hint => hint.type && hint.type.startsWith('letter_'))
                           .sort((a, b) => {
                             // Tri spécial pour gérer letter_first et letter_last
                             if (a.type === 'letter_first') return -1;
@@ -1012,7 +1182,7 @@ const RevealSuccessModal = ({
                                  hint.type === 'letter_last' ? 'Dernière lettre' : 
                                  `Position ${parseInt(hint.type.split('_')[1]) + 1}`}
                               </p>
-                              <p className="text-xl font-bold text-center text-primary">{hint.value}</p>
+                              <p className="text-xl font-bold text-center text-primary">{hint.value || "?"}</p>
                             </div>
                           ))}
                       </div>
@@ -1034,8 +1204,6 @@ const RevealSuccessModal = ({
                       </div>
                     </div>
                   )}
-                  
-
                   
                   {/* Indices spéciaux (emoji, indice laissé par l'expéditeur, etc.) */}
                   {obtainedHints.some(hint => hint.type && ['emoji', 'hint', 'riddle_success', 'sender_hint'].includes(hint.type)) && (
@@ -1107,6 +1275,25 @@ const RevealSuccessModal = ({
                 <p className="text-xs text-gray-light">
                   Utilisez une clé pour obtenir votre premier indice
                 </p>
+              </div>
+            )}
+            
+            {/* Ajout d'un bouton pour accéder à la devinette si disponible */}
+            {senderInfo && senderInfo.riddle && senderInfo.riddle.question && !showRiddle && (
+              <div className="mb-4 p-3 bg-purple-900/30 rounded-lg border border-purple-500">
+                <h3 className="text-sm font-semibold text-purple-300 mb-2 flex items-center">
+                  <FaQuestion className="text-yellow-400 mr-2" />
+                  Devinette disponible !
+                </h3>
+                <p className="text-sm mb-3">
+                  L'expéditeur a laissé une devinette qui pourrait vous aider à découvrir son identité.
+                </p>
+                <button 
+                  onClick={showRiddleForm}
+                  className="btn-secondary-outline w-full"
+                >
+                  Répondre à la devinette
+                </button>
               </div>
             )}
             
@@ -1246,56 +1433,75 @@ const RevealSuccessModal = ({
             </div>
           </>
         ) : (
-          <>
-            <h3 className="text-xl font-bold text-center mb-6">
-              Découvrez qui vous a envoyé ce message
-            </h3>
+          // Écran d'accueil par défaut
+          <div className="text-center py-4">
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", damping: 12 }}
+              className="mx-auto w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mb-6"
+            >
+              <FaQuestion className="text-3xl text-primary" />
+            </motion.div>
             
-            <div className="text-center">
-              <motion.div 
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="w-24 h-24 mx-auto mb-6 rounded-full bg-gray-800 flex items-center justify-center"
-              >
-                <FaUser className="text-gray-500 text-4xl" />
-              </motion.div>
-              
-              <p className="text-gray-light mb-6">
-                Vous avez débloqué des informations sur l'expéditeur ! 
-                Choisissez comment vous souhaitez découvrir qui c'est.
-              </p>
-              
-              <div className="flex flex-col space-y-3">
+            <h2 className="text-xl font-bold mb-6">Devinez qui c'est</h2>
+            
+            <p className="text-gray-light mb-8">
+              Essayez de découvrir l'identité de la personne qui vous a envoyé ce message.
+            </p>
+            
+            <div className="space-y-4">
+              {senderInfo && senderInfo.riddle && senderInfo.riddle.question && (
                 <button
-                  onClick={revealFirstLetter}
+                  onClick={showRiddleForm}
                   className="btn-primary w-full flex items-center justify-center"
                 >
-                  <FaKey className="mr-2" />
-                  Commencer à deviner
+                  <FaQuestion className="mr-2" />
+                  Répondre à la devinette
                 </button>
-                
-                {senderInfo.riddle && senderInfo.riddle.question && (
-                  <button
-                    onClick={showRiddleForm}
-                    className="btn-secondary w-full flex items-center justify-center"
-                  >
-                    <FaQuestion className="mr-2" />
-                    Répondre à la devinette
-                  </button>
+              )}
+              
+              <button
+                onClick={() => setShowForm(true)}
+                className="btn-secondary w-full flex items-center justify-center"
+              >
+                <FaUser className="mr-2" />
+                Deviner directement
+              </button>
+              
+              <button
+                onClick={unlockHint}
+                disabled={unlockHintLoading || userKeys <= 0}
+                className="btn-outline w-full flex items-center justify-center"
+              >
+                {unlockHintLoading ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 mr-2 border-2 border-primary border-t-transparent rounded-full"></span>
+                    Chargement...
+                  </>
+                ) : userKeys <= 0 ? (
+                  <>
+                    <FaKey className="mr-2" />
+                    Aucune clé disponible
+                  </>
+                ) : (
+                  <>
+                    <FaUnlock className="mr-2" />
+                    Utiliser une clé ({userKeys} disponible{userKeys > 1 ? 's' : ''})
+                  </>
                 )}
-                
-                <button
-                  onClick={unlockHint}
-                  disabled={unlockHintLoading || userKeys <= 0}
-                  className="btn-outline w-full flex items-center justify-center"
-                >
-                  <FaUnlock className="mr-2" />
-                  Utiliser une clé ({userKeys} disponible{userKeys > 1 ? 's' : ''})
-                </button>
-              </div>
+              </button>
+              
+              {/* Ajouter un bouton pour fermer le modal */}
+              <button
+                onClick={handleClose}
+                className="btn-outline w-full mt-4 flex items-center justify-center"
+              >
+                <FaTimes className="mr-2" />
+                Fermer
+              </button>
             </div>
-          </>
+          </div>
         )}
       </motion.div>
     </div>

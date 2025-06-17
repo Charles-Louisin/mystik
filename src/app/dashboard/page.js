@@ -307,26 +307,122 @@ export default function Dashboard() {
           ? 'http://localhost:5000' 
           : window.location.origin;
         
+        // Récupérer les indices depuis le serveur
         const hintsResponse = await axios.get(
           `${apiBaseUrl}/api/messages/${message._id}/hints`,
           { headers: { Authorization: `Bearer ${token}` }}
         );
         
+        console.log("Indices récupérés depuis le serveur:", hintsResponse.data.hints);
+        
+        // Récupérer également les indices stockés localement
+        let localHints = [];
+        try {
+          const savedHints = localStorage.getItem(`hints_${message._id}`);
+          if (savedHints) {
+            localHints = JSON.parse(savedHints);
+            console.log("Indices récupérés depuis le localStorage:", localHints);
+          }
+        } catch (error) {
+          console.error("Erreur lors de la récupération des indices depuis le localStorage:", error);
+        }
+        
+        // Fusionner les indices du serveur et du localStorage
+        let mergedHints = [];
+        
+        // Commencer avec les indices du serveur
+        if (hintsResponse.data.hints && Array.isArray(hintsResponse.data.hints)) {
+          mergedHints = [...hintsResponse.data.hints];
+        }
+        
+        // Ajouter les indices du localStorage qui ne sont pas déjà présents
+        if (localHints.length > 0) {
+          localHints.forEach(localHint => {
+            // Vérifier si cet indice existe déjà dans les indices fusionnés
+            const exists = mergedHints.some(
+              hint => hint.type === localHint.type && hint.value === localHint.value
+            );
+            
+            if (!exists) {
+              mergedHints.push(localHint);
+            }
+          });
+        }
+        
+        console.log("Indices fusionnés:", mergedHints);
+        
+        // Sauvegarder les indices fusionnés dans le localStorage
+        if (mergedHints.length > 0) {
+          localStorage.setItem(`hints_${message._id}`, JSON.stringify(mergedHints));
+        }
+        
         // Enrichir les données du sender avec les indices découverts
         const senderWithHints = {
           ...message.sender,
-          discoveredHints: hintsResponse.data.hints || [],
+          discoveredHints: mergedHints,
           hint: message.clues?.hint || null,
           emoji: message.clues?.emoji || null,
-          riddle: message.clues?.riddle || null
+          riddle: message.clues?.riddle || null,
+          // S'assurer que riddleSolved est correctement défini
+          riddleSolved: Boolean(message.sender.riddleSolved),
+          // S'assurer que l'état userDiscovered est correctement défini
+          userDiscovered: Boolean(message.sender.userDiscovered)
         };
         
-        // Ouvrir directement le modal de succès pour afficher les indices
-        setRevealedSenderInfo(senderWithHints);
-        setShowSuccessModal(true);
+        console.log("Informations de l'expéditeur enrichies:", senderWithHints);
+        
+        // Si le nom est découvert mais pas l'utilisateur réel, et qu'il s'agit d'un utilisateur réel,
+        // ouvrir le modal standard pour permettre de deviner l'utilisateur réel
+        if (senderWithHints.nameDiscovered && !senderWithHints.userDiscovered && senderWithHints.realUser) {
+          console.log("Nom découvert mais pas l'utilisateur réel - Affichage du modal standard");
+          setRevealedSenderInfo(senderWithHints);
+          setShowSuccessModal(true);
+        } else {
+          // Sinon, ouvrir directement le modal de succès pour afficher les indices
+          setRevealedSenderInfo(senderWithHints);
+          setShowSuccessModal(true);
+        }
       } catch (error) {
         console.error("Erreur lors de la récupération des indices:", error);
-        // En cas d'erreur, on affiche quand même le modal standard
+        
+        // En cas d'erreur, essayer de récupérer les indices depuis le localStorage
+        try {
+          const savedHints = localStorage.getItem(`hints_${message._id}`);
+          if (savedHints) {
+            const parsedHints = JSON.parse(savedHints);
+            console.log("Indices récupérés depuis le localStorage (fallback):", parsedHints);
+            
+            // Enrichir les données du sender avec les indices récupérés du localStorage
+            const senderWithLocalHints = {
+              ...message.sender,
+              discoveredHints: parsedHints,
+              hint: message.clues?.hint || null,
+              emoji: message.clues?.emoji || null,
+              riddle: message.clues?.riddle || null,
+              // S'assurer que riddleSolved est correctement défini
+              riddleSolved: Boolean(message.sender.riddleSolved),
+              // S'assurer que l'état userDiscovered est correctement défini
+              userDiscovered: Boolean(message.sender.userDiscovered)
+            };
+            
+            // Si le nom est découvert mais pas l'utilisateur réel, et qu'il s'agit d'un utilisateur réel,
+            // ouvrir le modal standard pour permettre de deviner l'utilisateur réel
+            if (senderWithLocalHints.nameDiscovered && !senderWithLocalHints.userDiscovered && senderWithLocalHints.realUser) {
+              console.log("Nom découvert mais pas l'utilisateur réel (localStorage) - Affichage du modal standard");
+              setRevealedSenderInfo(senderWithLocalHints);
+              setShowSuccessModal(true);
+            } else {
+              // Sinon, ouvrir directement le modal de succès avec les indices du localStorage
+              setRevealedSenderInfo(senderWithLocalHints);
+              setShowSuccessModal(true);
+            }
+            return;
+          }
+        } catch (localError) {
+          console.error("Erreur lors de la récupération des indices depuis le localStorage (fallback):", localError);
+        }
+        
+        // Si tout échoue, afficher le modal standard
         setShowRevealModal(true);
       }
     };
@@ -368,22 +464,27 @@ export default function Dashboard() {
       
       console.log("Réponse de l'API reveal:", data);
       
+      // S'assurer que toutes les propriétés importantes sont présentes et correctement définies
+      const senderInfo = {
+        ...data.sender,
+        identityRevealed: true,
+        nickname: data.sender.nickname || "Anonyme",
+        displayNickname: data.sender.displayNickname || null,
+        nameDiscovered: Boolean(data.sender.nameDiscovered),
+        userDiscovered: Boolean(data.sender.userDiscovered),
+        realUserName: data.sender.realUserName || null,
+        realUser: Boolean(data.sender.realUser),
+        riddleSolved: Boolean(data.sender.riddleSolved)
+      };
+      
+      console.log("Informations de l'expéditeur formatées:", senderInfo);
+      
       // Mise à jour du message dans l'état
       const updatedMessages = messages.map(msg => 
         msg._id === selectedMessage._id 
           ? { 
               ...msg, 
-              sender: { 
-                ...msg.sender, 
-                identityRevealed: true,
-                nickname: data.sender.nickname, // Le vrai nickname pour la vérification
-                displayNickname: data.sender.displayNickname || null, // Pour l'affichage
-                nameDiscovered: data.sender.nameDiscovered || false,
-                userDiscovered: data.sender.userDiscovered || false,
-                realUserName: data.sender.realUserName || null,
-                realUser: data.sender.realUser || false,
-                ...data.sender
-              }
+              sender: senderInfo
             } 
           : msg
       );
@@ -393,17 +494,7 @@ export default function Dashboard() {
       // Mise à jour du message sélectionné
       const updatedSelectedMessage = {
         ...selectedMessage,
-        sender: {
-          ...selectedMessage.sender,
-          identityRevealed: true,
-          nickname: data.sender.nickname,
-          displayNickname: data.sender.displayNickname || null,
-          nameDiscovered: data.sender.nameDiscovered || false,
-          userDiscovered: data.sender.userDiscovered || false,
-          realUserName: data.sender.realUserName || null,
-          realUser: data.sender.realUser || false,
-          ...data.sender
-        }
+        sender: senderInfo
       };
       
       setSelectedMessage(updatedSelectedMessage);
@@ -425,8 +516,9 @@ export default function Dashboard() {
       // Fermer le modal de révélation
       setShowRevealModal(false);
       
-      // Afficher le modal de succès
-      setRevealedSenderInfo(data.sender);
+      // Afficher le modal de succès avec les informations complètes
+      console.log("Informations de l'expéditeur à afficher dans le modal:", senderInfo);
+      setRevealedSenderInfo(senderInfo);
       setShowSuccessModal(true);
       
     } catch (error) {
@@ -591,7 +683,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
         ? 'http://localhost:5000' 
         : window.location.origin;
       
@@ -607,6 +699,14 @@ export default function Dashboard() {
         if (message.sender && message.sender.userDiscovered) {
           console.log(`Message ${message._id} a une identité découverte: ${message.sender.realUserName}`);
         }
+        
+        // Ajouter un log de débogage pour vérifier l'état complet du message
+        console.log(`État complet du message ${message._id}:`, {
+          userDiscovered: message.sender?.userDiscovered,
+          nameDiscovered: message.sender?.nameDiscovered,
+          realUser: message.sender?.realUser,
+          riddleSolved: message.sender?.riddleSolved
+        });
       });
       
       // Mettre à jour l'état des messages avec les données fraîches du serveur
@@ -645,10 +745,10 @@ export default function Dashboard() {
     setShowSuccessModal(false);
     
     // Réinitialiser les états
-    setRevealedSenderInfo(null);
+    // setRevealedSenderInfo(null); // Commenté pour conserver les informations de l'expéditeur
     setUsedKey(false);
     
-    // Forcer un rafraîchissement complet des messages depuis le serveur
+    // Rafraîchir les messages depuis le serveur sans recharger toute la page
     try {
       const token = localStorage.getItem("token");
       
@@ -656,7 +756,7 @@ export default function Dashboard() {
         ? 'http://localhost:5000' 
         : window.location.origin;
       
-      console.log("Rafraîchissement forcé des messages après révélation...");
+      console.log("Rafraîchissement des messages après révélation...");
       
       // Récupérer les messages directement depuis le serveur
       const { data: messagesData } = await axios.get(`${apiBaseUrl}/api/messages/received`, {
@@ -682,8 +782,8 @@ export default function Dashboard() {
       // Afficher une notification de succès
       toast.success("Messages mis à jour");
       
-      // Forcer un rechargement complet de la page pour s'assurer que tout est à jour
-      window.location.reload();
+      // Rafraîchir également les données utilisateur pour mettre à jour le nombre de clés
+      refreshUserData();
     } catch (error) {
       console.error("Erreur lors du rafraîchissement des messages:", error);
       toast.error("Erreur lors de la mise à jour des messages");
@@ -1219,14 +1319,15 @@ export default function Dashboard() {
                                   
                                   {/* Afficher un badge pour indiquer le statut de révélation */}
                                   {message.sender.identityRevealed && message.sender.nameDiscovered && 
-                                   !message.sender.userDiscovered && message.sender.realUser && (
+                                   !message.sender.userDiscovered && message.sender.realUser && 
+                                   !message.sender.riddleSolved && (
                                     <span className="text-xs bg-purple-900/80 text-purple-100 px-2 py-0.5 rounded-full mt-1 inline-block">
                                       <FaUser className="inline-block mr-1 text-[10px]" />
                                       Identité réelle à découvrir
                                     </span>
                                   )}
                                   
-                                  {message.sender.userDiscovered && message.sender.realUserName && (
+                                  {(message.sender.userDiscovered || message.sender.riddleSolved) && (
                                     <span className="text-xs bg-green-800/60 text-green-100 px-2 py-0.5 rounded-full mt-1 inline-block">
                                       <FaCheckCircle className="inline-block mr-1 text-[10px]" />
                                       Identité complète révélée
@@ -1444,8 +1545,9 @@ export default function Dashboard() {
                                   </button>
                                 )}
                                 
-                                {/* Bouton de révélation */}
-                                {(!message.sender.userDiscovered && (message.sender.realUser || !message.sender.nameDiscovered)) && (
+                                                                  {/* Bouton de révélation */}
+                                 {(!message.sender.userDiscovered && (message.sender.realUser || !message.sender.nameDiscovered)) && 
+                                  !message.sender.riddleSolved && (
                                   <button 
                                     className="btn-sm bg-purple-700 hover:bg-purple-600 transition flex items-center"
                                     onClick={(e) => {
