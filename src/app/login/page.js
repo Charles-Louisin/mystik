@@ -44,10 +44,10 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      // Utiliser la variable d'environnement en priorité
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       // Formatage du numéro avec +237
       const formattedPhone = `+237${formData.phone}`;

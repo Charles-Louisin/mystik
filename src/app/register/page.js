@@ -58,10 +58,10 @@ export default function Register() {
     setPhoneAvailable(null);
     
     try {
-      // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      // Utiliser la variable d'environnement en priorité
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       // Formatage du numéro avec +237
       const formattedPhone = `+237${phone}`;
@@ -93,10 +93,10 @@ export default function Register() {
     setUsernameAvailable(null);
     
     try {
-      // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      // Utiliser la variable d'environnement en priorité
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       const { data } = await axios.post(`${apiBaseUrl}/api/auth/check-username`, {
         username: username
@@ -179,10 +179,10 @@ export default function Register() {
     setIsLoading(true);
     
     try {
-      // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      // Utiliser la variable d'environnement en priorité
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       // Formatage du numéro avec +237
       const formattedPhone = `+237${formData.phone}`;

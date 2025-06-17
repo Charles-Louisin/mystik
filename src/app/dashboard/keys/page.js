@@ -57,7 +57,11 @@ export default function GetKeys() {
     
     const fetchUserData = async () => {
       try {
-        const { data } = await axios.get("http://localhost:5000/api/auth/me", {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+          ? 'http://localhost:5000' 
+          : window.location.origin);
+        
+        const { data } = await axios.get(`${apiBaseUrl}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
@@ -88,9 +92,13 @@ export default function GetKeys() {
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
       
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+        ? 'http://localhost:5000' 
+        : window.location.origin);
+      
       // Appeler l'API pour ajouter des clés
       const { data } = await axios.post(
-        "http://localhost:5000/api/users/reveal-keys",
+        `${apiBaseUrl}/api/users/reveal-keys`,
         { method },
         { headers: { Authorization: `Bearer ${token}` } }
       );

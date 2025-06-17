@@ -120,9 +120,9 @@ function SendMessageContent({ recipientLink }) {
       // Récupérer les infos de l'utilisateur
       const fetchUserData = async () => {
         try {
-          const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+          const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
             ? 'http://localhost:5000' 
-            : window.location.origin;
+            : window.location.origin);
           
           const { data } = await axios.get(`${apiBaseUrl}/api/auth/me`, {
             headers: { Authorization: `Bearer ${token}` }
@@ -142,9 +142,9 @@ function SendMessageContent({ recipientLink }) {
   const fetchAvailableMasks = async () => {
     try {
       const token = localStorage.getItem("token");
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       const { data } = await axios.get(`${apiBaseUrl}/api/users/masks`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -250,9 +250,9 @@ function SendMessageContent({ recipientLink }) {
       }
       
       // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       // Recherche partielle d'utilisateurs
       const searchQuery = processedLink.toLowerCase();
@@ -340,9 +340,9 @@ function SendMessageContent({ recipientLink }) {
     setIsLoading(true);
     
     try {
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       // Vérifier si nous avons un message vocal
       if (formData.voiceMessage) {
@@ -560,9 +560,9 @@ function SendMessageContent({ recipientLink }) {
     setLoginError('');
     
     try {
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       const { data } = await axios.post(`${apiBaseUrl}/api/auth/login`, {
         phone: loginForm.phone,
@@ -615,9 +615,9 @@ function SendMessageContent({ recipientLink }) {
     setUsernameAvailable(null);
     
     try {
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       const { data } = await axios.get(`${apiBaseUrl}/api/auth/check-username/${username}`);
       setUsernameAvailable(data.available);
@@ -636,9 +636,9 @@ function SendMessageContent({ recipientLink }) {
     setPhoneAvailable(null);
     
     try {
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       const { data } = await axios.get(`${apiBaseUrl}/api/auth/check-phone/${phone}`);
       setPhoneAvailable(data.available);
@@ -663,9 +663,9 @@ function SendMessageContent({ recipientLink }) {
     }
     
     try {
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       const { data } = await axios.post(`${apiBaseUrl}/api/auth/register`, {
         username: registerForm.username,

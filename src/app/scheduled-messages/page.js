@@ -40,9 +40,9 @@ export default function ScheduledMessages() {
       const token = localStorage.getItem("token");
       if (!token) return;
       
-      const apiBaseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
         ? 'http://localhost:5000' 
-        : window.location.origin;
+        : window.location.origin);
       
       const { data } = await axios.get(`${apiBaseUrl}/api/messages/scheduled-details`, {
         headers: { Authorization: `Bearer ${token}` }
