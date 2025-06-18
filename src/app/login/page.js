@@ -44,17 +44,28 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      // Utiliser la variable d'environnement en priorité
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      // Utiliser uniquement l'URL du backend en ligne
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+      
+      console.log("Tentative de connexion à:", apiBaseUrl);
       
       // Formatage du numéro avec +237
       const formattedPhone = `+237${formData.phone}`;
       
+      console.log("Données envoyées:", { phone: formattedPhone });
+      
       const response = await axios.post(`${apiBaseUrl}/api/auth/login`, {
         phone: formattedPhone,
         password: formData.password
+      }, {
+        // Ajouter des options pour éviter les erreurs CORS
+        withCredentials: false,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        // Augmenter le timeout
+        timeout: 10000
       });
       
       // Enregistrer le token dans localStorage
@@ -63,9 +74,16 @@ export default function Login() {
       toast.success("Connexion réussie!");
       router.push("/dashboard");
     } catch (error) {
-      console.error("Erreur de connexion:", error);
-      const errorMessage = error.response?.data?.msg || "Numéro de téléphone ou mot de passe incorrect";
-      toast.error(errorMessage);
+      console.error("Erreur de connexion détaillée:", error);
+      
+      if (error.code === 'ECONNABORTED') {
+        toast.error("Délai d'attente dépassé. Le serveur est-il en ligne?");
+      } else if (error.code === 'ERR_NETWORK') {
+        toast.error("Erreur réseau. Vérifiez que le serveur backend est démarré sur le port 5000.");
+      } else {
+        const errorMessage = error.response?.data?.msg || "Numéro de téléphone ou mot de passe incorrect";
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

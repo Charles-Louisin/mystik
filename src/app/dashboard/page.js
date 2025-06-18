@@ -53,10 +53,8 @@ export default function Dashboard() {
     
     const fetchUserData = async () => {
       try {
-        // Utiliser la variable d'environnement en priorité
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-          ? 'http://localhost:5000' 
-          : window.location.origin);
+        // Utiliser uniquement l'URL du backend en ligne
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
         
         const { data: userData } = await axios.get(`${apiBaseUrl}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -145,10 +143,8 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       
-      // Utiliser la variable d'environnement en priorité
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      // Utiliser uniquement l'URL du backend en ligne
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       await axios.patch(`${apiBaseUrl}/api/messages/${messageId}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
@@ -190,9 +186,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("token");
       if (!token) return;
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.get(`${apiBaseUrl}/api/messages/emotional-radar`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -210,9 +204,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("token");
       if (!token) return;
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.get(`${apiBaseUrl}/api/messages/scheduled`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -230,9 +222,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("token");
       if (!token) return;
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.get(`${apiBaseUrl}/api/users/masks`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -250,9 +240,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("token");
       if (!token) return;
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.post(
         `${apiBaseUrl}/api/messages/earn-key`, 
@@ -284,9 +272,7 @@ export default function Dashboard() {
       const token = localStorage.getItem("token");
       if (!token) return;
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.get(`${apiBaseUrl}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -308,9 +294,7 @@ export default function Dashboard() {
     const fetchHints = async () => {
       try {
         const token = localStorage.getItem("token");
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-          ? 'http://localhost:5000' 
-          : window.location.origin);
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
         
         // Récupérer les indices depuis le serveur
         const hintsResponse = await axios.get(
@@ -455,9 +439,7 @@ export default function Dashboard() {
     
     try {
       const token = localStorage.getItem("token");
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       let endpoint = '';
       let payload = {};
@@ -549,9 +531,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.post(
         `${apiBaseUrl}/api/messages/${selectedMessage._id}/reveal-partial`,
@@ -594,9 +574,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.post(
         `${apiBaseUrl}/api/messages/${messageId}/analyze`,
@@ -680,9 +658,7 @@ export default function Dashboard() {
       setNotifying(true);
       
       const token = localStorage.getItem("token");
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       await axios.post(
         `${apiBaseUrl}/api/messages/${selectedMessage._id}/notify-sender`,
@@ -707,9 +683,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       // Récupérer les messages mis à jour directement depuis le serveur
       const { data: messagesData } = await axios.get(`${apiBaseUrl}/api/messages/received`, {
@@ -780,9 +754,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       console.log("Rafraîchissement des messages après révélation...");
       
@@ -891,9 +863,7 @@ export default function Dashboard() {
         setAudioProgress(0);
         
         // Charger l'audio avec authentification
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-          ? 'http://localhost:5000' 
-          : window.location.origin);
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
         
         // Utiliser la fonction loadAudioWithAuth pour gérer l'authentification
         const loadAudioWithAuth = async (url) => {

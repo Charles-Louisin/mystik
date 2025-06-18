@@ -120,9 +120,7 @@ function SendMessageContent({ recipientLink }) {
       // Récupérer les infos de l'utilisateur
       const fetchUserData = async () => {
         try {
-          const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-            ? 'http://localhost:5000' 
-            : window.location.origin);
+          const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
           
           const { data } = await axios.get(`${apiBaseUrl}/api/auth/me`, {
             headers: { Authorization: `Bearer ${token}` }
@@ -142,9 +140,7 @@ function SendMessageContent({ recipientLink }) {
   const fetchAvailableMasks = async () => {
     try {
       const token = localStorage.getItem("token");
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.get(`${apiBaseUrl}/api/users/masks`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -249,10 +245,8 @@ function SendMessageContent({ recipientLink }) {
         processedLink = processedLink.substring(1);
       }
       
-      // Utiliser l'origine de la fenêtre au lieu d'une URL codée en dur
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      // Utiliser uniquement l'URL du backend en ligne
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       // Recherche partielle d'utilisateurs
       const searchQuery = processedLink.toLowerCase();

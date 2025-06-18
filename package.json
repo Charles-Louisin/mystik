@@ -8,7 +8,7 @@
     "dev:backend": "nodemon backend/server.js",
     "build": "next build",
     "start": "next start",
-    "start:backend": "node backend/server.js",
+    "start:backend": "NODE_NO_WARNINGS=1 node backend/server.js",
     "lint": "next lint"
   },
   "dependencies": {
