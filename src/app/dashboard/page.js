@@ -1042,8 +1042,8 @@ export default function Dashboard() {
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b border-gray-800 py-4">
-        <div className="container mx-auto px-4 flex justify-between items-center">
+      <header className="border-b border-gray-800 py-3 sm:py-4">
+        <div className="container mx-auto px-2 sm:px-4 flex justify-between items-center">
           <div className="flex items-center">
             <Image 
               src="/logo.svg" 
@@ -1067,15 +1067,15 @@ export default function Dashboard() {
         </div>
       </header>
       
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <main className="flex-1 container mx-auto px-4 py-8 dashboard-container">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
           {/* Profil et statistiques */}
           <div className="md:col-span-1">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="card p-6"
+              className="card p-6 dashboard-card"
             >
               <div className="flex flex-col items-center">
                 <div className="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center mb-4">
@@ -1186,7 +1186,7 @@ export default function Dashboard() {
           
           {/* Messages et paramètres */}
           <div className="md:col-span-2">
-            <div className="card overflow-hidden">
+            <div className="card overflow-hidden dashboard-card">
               <div className="flex border-b border-gray-800">
                 <button
                   className={`flex-1 py-4 px-6 text-center transition ${
@@ -1211,10 +1211,10 @@ export default function Dashboard() {
                 </button>
               </div>
               
-              <div className="p-4">
+              <div className="p-2 sm:p-4">
                 {activeTab === "messages" && (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center mb-4">
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="flex justify-between items-center mb-3 sm:mb-4">
                       <h3 className="text-lg font-semibold">Mes messages</h3>
                       {messages.length > 0 && (
                         <span className="text-gray-light text-sm">
@@ -1238,28 +1238,28 @@ export default function Dashboard() {
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                      <div className="space-y-2 max-h-[600px] overflow-y-auto pr-0 sm:pr-1">
                         {messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(message => (
                           <motion.div
                             key={message._id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3 }}
-                            className={`card p-0 overflow-hidden backdrop-blur-sm ${!message.read ? 'border-2 border-primary shadow-lg shadow-primary/20' : 'border border-gray-800'} hover:shadow-xl transition-all duration-300`}
+                            className={`card p-0 overflow-hidden backdrop-blur-sm ${!message.read ? 'border border-primary shadow-sm shadow-primary/20' : 'border border-gray-800'} hover:shadow-md transition-all duration-300 mb-3 dashboard-card`}
                             onClick={() => !message.read && markAsRead(message._id)}
                             whileHover={
-                              message.emotionalFilter === 'amour' ? { scale: 1.02, boxShadow: "0 0 20px rgba(233, 30, 99, 0.4)" } :
-                              message.emotionalFilter === 'colère' ? { scale: 1.02, boxShadow: "0 0 20px rgba(244, 67, 54, 0.4)" } :
-                              message.emotionalFilter === 'admiration' ? { scale: 1.02, boxShadow: "0 0 20px rgba(139, 195, 74, 0.4)" } :
-                              message.emotionalFilter === 'regret' ? { scale: 1.01, boxShadow: "0 0 20px rgba(96, 125, 139, 0.4)" } :
-                              message.emotionalFilter === 'joie' ? { scale: 1.03, boxShadow: "0 0 20px rgba(255, 235, 59, 0.4)" } :
-                              message.emotionalFilter === 'tristesse' ? { scale: 1.01, boxShadow: "0 0 20px rgba(33, 150, 243, 0.4)" } :
-                              { scale: 1.01, boxShadow: "0 0 15px rgba(255, 255, 255, 0.15)" }
+                              message.emotionalFilter === 'amour' ? { scale: 1.01, boxShadow: "0 0 10px rgba(233, 30, 99, 0.3)" } :
+                              message.emotionalFilter === 'colère' ? { scale: 1.01, boxShadow: "0 0 10px rgba(244, 67, 54, 0.3)" } :
+                              message.emotionalFilter === 'admiration' ? { scale: 1.01, boxShadow: "0 0 10px rgba(139, 195, 74, 0.3)" } :
+                              message.emotionalFilter === 'regret' ? { scale: 1.005, boxShadow: "0 0 10px rgba(96, 125, 139, 0.3)" } :
+                              message.emotionalFilter === 'joie' ? { scale: 1.01, boxShadow: "0 0 10px rgba(255, 235, 59, 0.3)" } :
+                              message.emotionalFilter === 'tristesse' ? { scale: 1.005, boxShadow: "0 0 10px rgba(33, 150, 243, 0.3)" } :
+                              { scale: 1.005, boxShadow: "0 0 8px rgba(255, 255, 255, 0.1)" }
                             }
                           >
                             {/* En-tête stylisé selon l'émotion avec effet de verre */}
                             <div 
-                              className={`p-4 flex justify-between items-start backdrop-blur-md
+                              className={`py-2 px-3 flex justify-between items-start backdrop-blur-md
                                 ${message.emotionalFilter && message.emotionalFilter !== 'neutre' ? 
                                   message.emotionalFilter === 'amour' ? 'bg-pink-900/40 border-b border-pink-700 shadow-inner shadow-pink-800/30' : 
                                   message.emotionalFilter === 'colère' ? 'bg-red-900/40 border-b border-red-700 shadow-inner shadow-red-800/30' : 
@@ -1272,27 +1272,27 @@ export default function Dashboard() {
                             >
                               <div className="flex items-center">
                                 <motion.div 
-                                  className={`w-12 h-12 rounded-full flex items-center justify-center mr-3 shadow-lg
-                                    ${message.emotionalFilter === 'amour' ? 'bg-gradient-to-br from-pink-600 to-pink-900 shadow-pink-700/40' : 
-                                      message.emotionalFilter === 'colère' ? 'bg-gradient-to-br from-red-600 to-red-900 shadow-red-700/40' : 
-                                      message.emotionalFilter === 'admiration' ? 'bg-gradient-to-br from-green-600 to-green-900 shadow-green-700/40' : 
-                                      message.emotionalFilter === 'regret' ? 'bg-gradient-to-br from-slate-500 to-slate-800 shadow-slate-600/40' : 
-                                      message.emotionalFilter === 'joie' ? 'bg-gradient-to-br from-yellow-500 to-yellow-800 shadow-yellow-600/40' : 
-                                      message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-br from-blue-600 to-blue-900 shadow-blue-700/40' : 
-                                      message.sender.identityRevealed ? 'bg-gradient-to-br from-purple-500 to-purple-900 shadow-purple-700/40' : 'bg-gradient-to-br from-gray-600 to-gray-900'
+                                  className={`w-9 h-9 rounded-full flex items-center justify-center mr-2 shadow-md
+                                    ${message.emotionalFilter === 'amour' ? 'bg-gradient-to-br from-pink-600 to-pink-900 shadow-pink-700/30' : 
+                                      message.emotionalFilter === 'colère' ? 'bg-gradient-to-br from-red-600 to-red-900 shadow-red-700/30' : 
+                                      message.emotionalFilter === 'admiration' ? 'bg-gradient-to-br from-green-600 to-green-900 shadow-green-700/30' : 
+                                      message.emotionalFilter === 'regret' ? 'bg-gradient-to-br from-slate-500 to-slate-800 shadow-slate-600/30' : 
+                                      message.emotionalFilter === 'joie' ? 'bg-gradient-to-br from-yellow-500 to-yellow-800 shadow-yellow-600/30' : 
+                                      message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-br from-blue-600 to-blue-900 shadow-blue-700/30' : 
+                                      message.sender.identityRevealed ? 'bg-gradient-to-br from-purple-500 to-purple-900 shadow-purple-700/30' : 'bg-gradient-to-br from-gray-600 to-gray-900'
                                     }`}
                                   animate={
-                                    message.emotionalFilter === 'amour' ? { scale: [1, 1.2, 1], transition: { repeat: Infinity, repeatType: "mirror", duration: 1.5 } } :
-                                    message.emotionalFilter === 'colère' ? { rotate: [-2, 2, -2], transition: { repeat: Infinity, duration: 0.3 } } :
-                                    message.emotionalFilter === 'admiration' ? { scale: [1, 1.1, 1], transition: { repeat: Infinity, duration: 2 } } :
-                                    message.emotionalFilter === 'regret' ? { y: [0, -2, 0], transition: { repeat: Infinity, duration: 2.5 } } :
-                                    message.emotionalFilter === 'joie' ? { rotate: [-5, 0, 5, 0], transition: { repeat: Infinity, duration: 1 } } :
-                                    message.emotionalFilter === 'tristesse' ? { y: [0, 2, 0], transition: { repeat: Infinity, duration: 3 } } :
+                                    message.emotionalFilter === 'amour' ? { scale: [1, 1.1, 1], transition: { repeat: Infinity, repeatType: "mirror", duration: 1.5 } } :
+                                    message.emotionalFilter === 'colère' ? { rotate: [-1, 1, -1], transition: { repeat: Infinity, duration: 0.3 } } :
+                                    message.emotionalFilter === 'admiration' ? { scale: [1, 1.05, 1], transition: { repeat: Infinity, duration: 2 } } :
+                                    message.emotionalFilter === 'regret' ? { y: [0, -1, 0], transition: { repeat: Infinity, duration: 2.5 } } :
+                                    message.emotionalFilter === 'joie' ? { rotate: [-3, 0, 3, 0], transition: { repeat: Infinity, duration: 1 } } :
+                                    message.emotionalFilter === 'tristesse' ? { y: [0, 1, 0], transition: { repeat: Infinity, duration: 3 } } :
                                     {}
                                   }
-                                  whileHover={{ scale: 1.1 }}
+                                  whileHover={{ scale: 1.05 }}
                                 >
-                                  <span className="text-xl">
+                                  <span className="text-base">
                                   {message.sender.identityRevealed && message.sender.emoji 
                                     ? message.sender.emoji 
                                     : message.emotionalFilter === 'amour' ? '❤️' :
@@ -1305,7 +1305,7 @@ export default function Dashboard() {
                                   </span>
                                 </motion.div>
                                 <div>
-                                  <h4 className={`font-medium text-lg
+                                  <h4 className={`font-medium text-base
                                     ${message.emotionalFilter === 'amour' ? 'text-pink-200' : 
                                       message.emotionalFilter === 'colère' ? 'text-red-200' : 
                                       message.emotionalFilter === 'admiration' ? 'text-green-200' : 
@@ -1327,14 +1327,14 @@ export default function Dashboard() {
                                     <motion.span 
                                       initial={{ opacity: 0, scale: 0.8 }}
                                       animate={{ opacity: 1, scale: 1 }}
-                                      className="text-xs bg-gradient-to-r from-green-800 to-emerald-700 text-green-100 px-2 py-0.5 rounded-full mt-1 inline-block shadow-sm"
+                                      className="text-[10px] bg-gradient-to-r from-green-800 to-emerald-700 text-green-100 px-1.5 py-0.5 rounded-full mt-0.5 inline-block shadow-sm"
                                     >
-                                      <FaCheckCircle className="inline-block mr-1 text-[10px]" />
-                                      Surnom découvert
+                                      <FaCheckCircle className="inline-block mr-0.5 text-[8px]" />
+                                      Découvert
                                     </motion.span>
                                   )}
                                   
-                                  <span className="text-xs text-gray-light block mt-1">
+                                  <span className="text-[10px] text-gray-light block mt-0.5">
                                     {getDateFormatted(message.createdAt)}
                                   </span>
                                 </div>
@@ -1342,8 +1342,8 @@ export default function Dashboard() {
                               
                               {!message.read && (
                                 <motion.span 
-                                  className="bg-gradient-to-r from-primary to-purple-600 px-3 py-1 text-xs rounded-full shadow-lg shadow-primary/30"
-                                  animate={{ scale: [1, 1.1, 1] }}
+                                  className="bg-gradient-to-r from-primary to-purple-600 px-2 py-0.5 text-[10px] rounded-full shadow-md shadow-primary/20"
+                                  animate={{ scale: [1, 1.05, 1] }}
                                   transition={{ repeat: Infinity, duration: 1.5 }}
                                 >
                                   Nouveau
@@ -1352,45 +1352,45 @@ export default function Dashboard() {
                             </div>
                             
                             {/* Contenu du message stylisé selon l'émotion */}
-                            <div className="p-5">
+                            <div className="p-3">
                               <motion.div 
-                                className={`p-5 rounded-lg mb-4 shadow-md
-                                  ${message.emotionalFilter === 'amour' ? 'bg-pink-950/40 border-l-4 border-pink-600' : 
-                                    message.emotionalFilter === 'colère' ? 'bg-red-950/40 border-l-4 border-red-600' : 
-                                    message.emotionalFilter === 'admiration' ? 'bg-green-950/40 border-l-4 border-green-600' : 
-                                    message.emotionalFilter === 'regret' ? 'bg-slate-800/70 border-l-4 border-slate-500' : 
-                                    message.emotionalFilter === 'joie' ? 'bg-yellow-950/40 border-l-4 border-yellow-500' : 
-                                    message.emotionalFilter === 'tristesse' ? 'bg-blue-950/40 border-l-4 border-blue-600' : 
+                                className={`p-3 rounded-lg mb-2 shadow-sm
+                                  ${message.emotionalFilter === 'amour' ? 'bg-pink-950/40 border-l-2 border-pink-600' : 
+                                    message.emotionalFilter === 'colère' ? 'bg-red-950/40 border-l-2 border-red-600' : 
+                                    message.emotionalFilter === 'admiration' ? 'bg-green-950/40 border-l-2 border-green-600' : 
+                                    message.emotionalFilter === 'regret' ? 'bg-slate-800/70 border-l-2 border-slate-500' : 
+                                    message.emotionalFilter === 'joie' ? 'bg-yellow-950/40 border-l-2 border-yellow-500' : 
+                                    message.emotionalFilter === 'tristesse' ? 'bg-blue-950/40 border-l-2 border-blue-600' : 
                                     'bg-gray-800/60'
                                   }`}
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={{ opacity: 0, y: 5 }}
                                 animate={{ 
                                   opacity: 1, 
                                   y: 0,
                                   ...( message.emotionalFilter === 'amour' ? { 
-                                    boxShadow: ["0 0 0 rgba(233, 30, 99, 0)", "0 0 15px rgba(233, 30, 99, 0.4)", "0 0 0 rgba(233, 30, 99, 0)"],
+                                    boxShadow: ["0 0 0 rgba(233, 30, 99, 0)", "0 0 8px rgba(233, 30, 99, 0.3)", "0 0 0 rgba(233, 30, 99, 0)"],
                                     transition: { boxShadow: { repeat: Infinity, duration: 2 } }
                                   } : {}),
                                   ...( message.emotionalFilter === 'colère' ? { 
-                                    x: [0, -1, 0, 1, 0],
+                                    x: [0, -0.5, 0, 0.5, 0],
                                     transition: { x: { repeat: Infinity, duration: 0.5, repeatType: "loop" } }
                                   } : {}),
                                   ...( message.emotionalFilter === 'joie' ? {
-                                    backgroundColor: ["rgba(234, 179, 8, 0.1)", "rgba(234, 179, 8, 0.2)", "rgba(234, 179, 8, 0.1)"],
+                                    backgroundColor: ["rgba(234, 179, 8, 0.1)", "rgba(234, 179, 8, 0.15)", "rgba(234, 179, 8, 0.1)"],
                                     transition: { backgroundColor: { repeat: Infinity, duration: 2, repeatType: "mirror" } }
                                   } : {})
                                 }}
-                                transition={{ duration: 0.5 }}
+                                transition={{ duration: 0.3 }}
                               >
                                 {message.emotionalFilter && message.emotionalFilter !== 'neutre' && (
                                   <motion.div 
-                                    className="mb-3 flex items-center"
-                                    initial={{ opacity: 0, x: -10 }}
+                                    className="mb-1.5 flex items-center"
+                                    initial={{ opacity: 0, x: -5 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: 0.2 }}
+                                    transition={{ delay: 0.1 }}
                                   >
                                     <motion.span 
-                                      className={`text-xs px-3 py-1 rounded-full inline-flex items-center mb-2 shadow-sm
+                                      className={`text-[10px] px-2 py-0.5 rounded-full inline-flex items-center mb-1 shadow-sm
                                         ${message.emotionalFilter === 'amour' ? 'bg-gradient-to-r from-pink-900 to-pink-800 text-pink-200' : 
                                           message.emotionalFilter === 'colère' ? 'bg-gradient-to-r from-red-900 to-red-800 text-red-200' : 
                                           message.emotionalFilter === 'admiration' ? 'bg-gradient-to-r from-green-900 to-green-800 text-green-200' : 
@@ -1399,7 +1399,7 @@ export default function Dashboard() {
                                           message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-blue-200' : 
                                           'bg-gray-700'
                                         }`}
-                                      whileHover={{ scale: 1.05 }}
+                                      whileHover={{ scale: 1.03 }}
                                     >
                                       {message.emotionalFilter === 'amour' ? '❤️ Amour' :
                                         message.emotionalFilter === 'colère' ? '😡 Colère' :
@@ -1412,7 +1412,7 @@ export default function Dashboard() {
                                   </motion.div>
                                 )}
                                 <motion.p 
-                                  className={`text-base leading-relaxed
+                                  className={`text-sm leading-relaxed
                                     ${message.emotionalFilter === 'amour' ? 'text-pink-100 font-medium' : 
                                       message.emotionalFilter === 'colère' ? 'text-red-100 font-bold uppercase' : 
                                       message.emotionalFilter === 'admiration' ? 'text-green-100' : 
@@ -1423,7 +1423,7 @@ export default function Dashboard() {
                                     }`}
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
-                                  transition={{ delay: 0.3, duration: 0.5 }}
+                                  transition={{ delay: 0.2, duration: 0.3 }}
                                 >
                                   {message.content}
                                 </motion.p>
@@ -1431,41 +1431,41 @@ export default function Dashboard() {
                               
                               {/* Affichage du message vocal si disponible - Lecteur audio amélioré */}
                               {message.hasVoiceMessage && (
-                                <div className="mt-4 mb-3">
-                                  <div className="flex items-center bg-gray-800/80 backdrop-blur-sm p-2 sm:p-3 rounded-lg shadow-md border border-gray-700">
+                                <div className="mt-2 mb-2">
+                                  <div className="flex items-center bg-gray-800/80 backdrop-blur-sm p-1.5 rounded-lg shadow-sm border border-gray-700">
                                     <motion.button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         toggleAudioPlayback(message._id);
                                       }}
-                                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mr-3 sm:mr-4 shadow-lg transition-all duration-300 
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 shadow-md transition-all duration-200 
                                         ${message.isPlaying ? 
-                                          'bg-gradient-to-r from-primary to-purple-700 shadow-primary/40' : 
-                                          'bg-gradient-to-r from-gray-700 to-gray-900 hover:from-primary/80 hover:to-purple-700/80'
+                                          'bg-gradient-to-r from-primary to-purple-700 shadow-primary/30' : 
+                                          'bg-gradient-to-r from-gray-700 to-gray-900 hover:from-primary/70 hover:to-purple-700/70'
                                         }`}
-                                      whileHover={{ scale: 1.1 }}
+                                      whileHover={{ scale: 1.05 }}
                                       whileTap={{ scale: 0.95 }}
                                     >
                                       {message.isPlaying ? (
-                                        <FaPause className="text-white" />
+                                        <FaPause className="text-white text-xs" />
                                       ) : (
-                                        <FaPlay className="text-white ml-1" />
+                                        <FaPlay className="text-white text-xs ml-0.5" />
                                       )}
                                     </motion.button>
                                     <div className="flex-1">
-                                      <div className="flex justify-between items-center mb-1 sm:mb-2">
-                                        <span className="text-xs sm:text-sm font-medium text-white">Message vocal</span>
+                                      <div className="flex justify-between items-center mb-0.5">
+                                        <span className="text-[10px] font-medium text-white">Message vocal</span>
                                         {message.voiceFilter && message.voiceFilter !== "normal" && (
-                                          <span className="text-xs bg-primary/20 text-primary font-medium px-2 py-0.5 rounded-full">
-                                            {message.voiceFilter === "aiguë" ? "Filtre: Aigu" : 
-                                             message.voiceFilter === "grave" ? "Filtre: Grave" : 
-                                             message.voiceFilter === "robot" ? "Filtre: Robot" : 
-                                             message.voiceFilter === "echo" ? "Filtre: Écho" : 
-                                             `Filtre: ${message.voiceFilter}`}
+                                          <span className="text-[8px] bg-primary/20 text-primary font-medium px-1.5 py-0.5 rounded-full">
+                                            {message.voiceFilter === "aiguë" ? "Aigu" : 
+                                             message.voiceFilter === "grave" ? "Grave" : 
+                                             message.voiceFilter === "robot" ? "Robot" : 
+                                             message.voiceFilter === "echo" ? "Écho" : 
+                                             `${message.voiceFilter}`}
                                           </span>
                                          )}
                                        </div>
-                                      <div className="h-1.5 sm:h-2 bg-gray-700 rounded-full overflow-hidden shadow-inner">
+                                      <div className="h-1 bg-gray-700 rounded-full overflow-hidden shadow-inner">
                                         <motion.div 
                                           className={`h-full rounded-full ${
                                             message.voiceFilter === "aiguë" ? "bg-gradient-to-r from-pink-500 to-pink-400" :
@@ -1476,12 +1476,12 @@ export default function Dashboard() {
                                           }`}
                                           style={{ width: `${message.isPlaying ? audioProgress : 0}%` }}
                                           animate={message.isPlaying ? {
-                                            boxShadow: ["0 0 5px rgba(139, 92, 246, 0.5)", "0 0 15px rgba(139, 92, 246, 0.8)", "0 0 5px rgba(139, 92, 246, 0.5)"]
+                                            boxShadow: ["0 0 3px rgba(139, 92, 246, 0.4)", "0 0 8px rgba(139, 92, 246, 0.6)", "0 0 3px rgba(139, 92, 246, 0.4)"]
                                           } : {}}
                                           transition={{ repeat: Infinity, duration: 1.5 }}
                                         />
                                        </div>
-                                      <div className="mt-1 text-xs text-gray-300 flex justify-between">
+                                      <div className="mt-0.5 text-[8px] text-gray-300 flex justify-between">
                                         <motion.span 
                                           animate={message.isPlaying ? { opacity: [0.7, 1, 0.7] } : {}}
                                           transition={{ repeat: Infinity, duration: 1.5 }}
@@ -1507,7 +1507,7 @@ export default function Dashboard() {
                               )}
                               
                               {/* Indicateurs compacts pour les fonctionnalités */}
-                              <div className="flex flex-wrap gap-2 mt-3">
+                              <div className="flex flex-wrap gap-1 mt-2">
                                 {message.aiAnalysis && (
                                   <motion.button
                                     onClick={(e) => {
@@ -1517,9 +1517,9 @@ export default function Dashboard() {
                                       );
                                       setMessages(updatedMessages);
                                     }}
-                                    className="bg-purple-900/30 text-purple-200 text-xs px-2 py-1 rounded-full flex items-center hover:bg-purple-900/50 transition-colors"
+                                    className="bg-purple-900/30 text-purple-200 text-[10px] px-1.5 py-0.5 rounded-full flex items-center hover:bg-purple-900/50 transition-colors"
                                   >
-                                    <FaBrain className="mr-1" /> {message.showAnalysis ? "Masquer l'analyse" : "Voir l'analyse"}
+                                    <FaBrain className="mr-0.5 text-[8px]" /> {message.showAnalysis ? "Masquer l'analyse" : "Voir l'analyse"}
                                   </motion.button>
                                 )}
                               </div>
@@ -1527,40 +1527,40 @@ export default function Dashboard() {
                               {/* Affichage de l'analyse du message si disponible */}
                               {message.aiAnalysis && message.showAnalysis && (
                                 <motion.div 
-                                  className="mt-3 p-3 bg-blue-900/30 backdrop-blur-sm rounded-lg border border-blue-800/50"
-                                  initial={{ opacity: 0, y: 10 }}
+                                  className="mt-2 p-2 bg-blue-900/30 backdrop-blur-sm rounded-lg border border-blue-800/50"
+                                  initial={{ opacity: 0, y: 5 }}
                                   animate={{ opacity: 1, y: 0 }}
-                                  transition={{ duration: 0.3 }}
+                                  transition={{ duration: 0.2 }}
                                 >
-                                  <h4 className="text-sm font-medium text-blue-300 mb-2 flex items-center">
-                                    <FaBrain className="mr-2" />
+                                  <h4 className="text-xs font-medium text-blue-300 mb-1 flex items-center">
+                                    <FaBrain className="mr-1 text-[10px]" />
                                     Analyse du message
                                   </h4>
                                   
                                   {typeof message.aiAnalysis === 'string' ? (
-                                    <p className="text-xs sm:text-sm text-gray-200">
+                                    <p className="text-[10px] text-gray-200">
                                       {message.aiAnalysis}
                                     </p>
                                   ) : (
-                                    <div className="space-y-2">
+                                    <div className="space-y-1">
                                       {message.aiAnalysis.emotionalIntent && (
                                         <div>
-                                          <h5 className="text-xs font-medium text-blue-200">Intention émotionnelle:</h5>
-                                          <p className="text-xs sm:text-sm text-gray-200">{message.aiAnalysis.emotionalIntent}</p>
+                                          <h5 className="text-[10px] font-medium text-blue-200">Intention émotionnelle:</h5>
+                                          <p className="text-[10px] text-gray-200">{message.aiAnalysis.emotionalIntent}</p>
                                          </div>
                                       )}
                                       
                                       {message.aiAnalysis.summary && (
                                         <div>
-                                          <h5 className="text-xs font-medium text-blue-200">Résumé:</h5>
-                                          <p className="text-xs sm:text-sm text-gray-200">{message.aiAnalysis.summary}</p>
+                                          <h5 className="text-[10px] font-medium text-blue-200">Résumé:</h5>
+                                          <p className="text-[10px] text-gray-200">{message.aiAnalysis.summary}</p>
                                      </div>
                                   )}
                                   
                                       {message.aiAnalysis.suggestionForReply && (
                                         <div>
-                                          <h5 className="text-xs font-medium text-blue-200">Suggestion de réponse:</h5>
-                                          <p className="text-xs sm:text-sm text-gray-200">{message.aiAnalysis.suggestionForReply}</p>
+                                          <h5 className="text-[10px] font-medium text-blue-200">Suggestion de réponse:</h5>
+                                          <p className="text-[10px] text-gray-200">{message.aiAnalysis.suggestionForReply}</p>
                                      </div>
                                   )}
                                 </div>
@@ -1569,17 +1569,17 @@ export default function Dashboard() {
                               )}
                               
                               {/* Boutons d'action compacts pour le message */}
-                              <div className="mt-4 flex items-center justify-between gap-3">
+                              <div className="mt-2 flex items-center justify-between gap-1.5">
                                 {/* Bouton Découvrir - affiché seulement si le surnom n'a pas été découvert */}
                                 {(!message.sender || !message.sender.nameDiscovered) && (
                                   <motion.button
                                     onClick={() => openRevealModal(message)}
-                                    className="flex-1 py-2 px-3 bg-gradient-to-r from-primary/20 to-purple-600/20 hover:from-primary/30 hover:to-purple-600/30 backdrop-blur-sm rounded-lg border border-primary/30 text-primary-light flex items-center justify-center transition-all duration-300"
-                                    whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(139, 92, 246, 0.3)" }}
-                                    whileTap={{ scale: 0.98 }}
+                                    className="flex-1 py-1 px-2 bg-gradient-to-r from-primary/20 to-purple-600/20 hover:from-primary/30 hover:to-purple-600/30 backdrop-blur-sm rounded-md border border-primary/30 text-primary-light flex items-center justify-center transition-all duration-200"
+                                    whileHover={{ scale: 1.01, boxShadow: "0 0 8px rgba(139, 92, 246, 0.2)" }}
+                                    whileTap={{ scale: 0.99 }}
                                 >
-                                    <FaEye className="mr-2" />
-                                    <span className="font-medium">Découvrir</span>
+                                    <FaEye className="mr-1 text-xs" />
+                                    <span className="font-medium text-xs">Découvrir</span>
                                   </motion.button>
                                 )}
                                 
@@ -1587,12 +1587,12 @@ export default function Dashboard() {
                                 {!message.analyzed && (
                                   <motion.button
                                     onClick={() => analyzeMessage(message._id)}
-                                    className="flex-1 py-2 px-3 bg-gradient-to-r from-blue-600/20 to-cyan-500/20 hover:from-blue-600/30 hover:to-cyan-500/30 backdrop-blur-sm rounded-lg border border-blue-500/30 text-blue-300 flex items-center justify-center transition-all duration-300"
-                                    whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(59, 130, 246, 0.3)" }}
-                                    whileTap={{ scale: 0.98 }}
+                                    className="flex-1 py-1 px-2 bg-gradient-to-r from-blue-600/20 to-cyan-500/20 hover:from-blue-600/30 hover:to-cyan-500/30 backdrop-blur-sm rounded-md border border-blue-500/30 text-blue-300 flex items-center justify-center transition-all duration-200"
+                                    whileHover={{ scale: 1.01, boxShadow: "0 0 8px rgba(59, 130, 246, 0.2)" }}
+                                    whileTap={{ scale: 0.99 }}
                                   >
-                                    <FaBrain className="mr-2" />
-                                    <span className="font-medium">Analyser</span>
+                                    <FaBrain className="mr-1 text-xs" />
+                                    <span className="font-medium text-xs">Analyser</span>
                                   </motion.button>
                                 )}
                                 
@@ -1603,12 +1603,12 @@ export default function Dashboard() {
                                     setSelectedMessage(message);
                                     setShowShareModal(true);
                                   }}
-                                  className="flex-1 py-2 px-3 bg-gradient-to-r from-green-600/20 to-emerald-500/20 hover:from-green-600/30 hover:to-emerald-500/30 backdrop-blur-sm rounded-lg border border-green-500/30 text-green-300 flex items-center justify-center transition-all duration-300"
-                                  whileHover={{ scale: 1.03, boxShadow: "0 0 15px rgba(16, 185, 129, 0.3)" }}
-                                  whileTap={{ scale: 0.98 }}
+                                  className="flex-1 py-1 px-2 bg-gradient-to-r from-green-600/20 to-emerald-500/20 hover:from-green-600/30 hover:to-emerald-500/30 backdrop-blur-sm rounded-md border border-green-500/30 text-green-300 flex items-center justify-center transition-all duration-200"
+                                  whileHover={{ scale: 1.01, boxShadow: "0 0 8px rgba(16, 185, 129, 0.2)" }}
+                                  whileTap={{ scale: 0.99 }}
                                   >
-                                  <FaShareAlt className="mr-2" />
-                                  <span className="font-medium">Partager</span>
+                                  <FaShareAlt className="mr-1 text-xs" />
+                                  <span className="font-medium text-xs">Partager</span>
                                 </motion.button>
                               </div>
                             </div>
@@ -1996,8 +1996,8 @@ export default function Dashboard() {
         </div>
       )}
       
-      <footer className="py-4 border-t border-gray-800">
-        <div className="container mx-auto px-4 text-center text-sm text-gray-light">
+      <footer className="py-3 sm:py-4 border-t border-gray-800">
+        <div className="container mx-auto px-2 sm:px-4 text-center text-xs sm:text-sm text-gray-light">
           <p>© {new Date().getFullYear()} Mystik - Tous droits réservés</p>
         </div>
       </footer>

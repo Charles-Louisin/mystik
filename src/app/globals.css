@@ -149,6 +149,20 @@ body {
   }
 }
 
+/* Ajout de règles pour supprimer les marges sur mobile */
+@media (max-width: 640px) {
+  .dashboard-container {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  .dashboard-card {
+    border-radius: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
