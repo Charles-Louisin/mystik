@@ -1706,12 +1706,12 @@ if (formData.voiceMessage) {
   // Rendu du composant SendMessageContent
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <main className="flex-1 flex items-center justify-center p-6">
+      <main className="flex-1 flex items-center justify-center p-0 sm:p-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="card p-8 w-full max-w-md"
+          className="card p-4 sm:p-8 w-full h-full sm:h-auto sm:max-w-md rounded-none sm:rounded-2xl"
         >
           <div className="flex items-center justify-center mb-8 relative">
             <Link href="/" className="absolute left-0 top-0 text-gray-light hover:text-white">
@@ -1747,9 +1747,9 @@ if (formData.voiceMessage) {
                       className="input w-full pl-8"
                       placeholder="@identifiant"
                     />
-                    <FaUser className="absolute left-3 top-3 text-gray-light" />
+                    <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-light" />
                     {checkingUser && (
-                      <div className="absolute right-3 top-3">
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                         <div className="animate-spin h-4 w-4 border-2 border-primary rounded-full border-t-transparent"></div>
                       </div>
                     )}
@@ -1921,7 +1921,8 @@ if (formData.voiceMessage) {
                           name="scheduledDate"
                           value={formData.scheduledDate}
                           onChange={(e) => handleDateChange(e.target.value)}
-                      className="input w-full bg-gray-900"
+                          className="input w-full bg-gray-900 text-white"
+                          style={{ colorScheme: "dark" }}
                         />
                     <p className="text-xs text-gray-light mt-2">
                       Laisse vide pour un envoi immédiat ou choisis une date future
@@ -2094,7 +2095,7 @@ if (formData.voiceMessage) {
                   )}
                 </div>
                 
-                <div className="flex space-x-4">
+                <div className="flex space-x-4 mt-8">
                   <button
                     type="button"
                     onClick={prevStep}
@@ -2323,7 +2324,7 @@ if (formData.voiceMessage) {
                   </div>
                 </div>
                 
-                <div className="flex space-x-4">
+                <div className="flex space-x-4 mt-8">
                   <button
                     type="button"
                     onClick={prevStep}
@@ -2419,7 +2420,7 @@ if (formData.voiceMessage) {
                     />
                       <button
                         type="button"
-                        className="absolute top-3 right-3 text-gray-light hover:text-white transition-colors"
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-light hover:text-white transition-colors"
                         onClick={() => setShowLoginPassword(!showLoginPassword)}
                       >
                         {showLoginPassword ? <FaEyeSlash /> : <FaEye />}
@@ -2582,7 +2583,7 @@ if (formData.voiceMessage) {
                     />
                       <button
                         type="button"
-                        className="absolute top-3 right-3 text-gray-light hover:text-white transition-colors"
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-light hover:text-white transition-colors"
                         onClick={() => setShowRegisterPassword(!showRegisterPassword)}
                       >
                         {showRegisterPassword ? <FaEyeSlash /> : <FaEye />}
@@ -2605,7 +2606,7 @@ if (formData.voiceMessage) {
                     />
                       <button
                         type="button"
-                        className="absolute top-3 right-3 text-gray-light hover:text-white transition-colors"
+                        className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-light hover:text-white transition-colors"
                         onClick={() => setShowRegisterPassword2(!showRegisterPassword2)}
                       >
                         {showRegisterPassword2 ? <FaEyeSlash /> : <FaEye />}

@@ -194,7 +194,7 @@ export default function Home() {
             className="text-center mb-12"
           >
             {/* Logo animé */}
-            <div className="mb-8 relative w-48 h-48 mx-auto">
+            <div className="mb-8 relative w-48 h-48 mx-auto mt-7 md:mt-0">
               <AnimatedLogo width={200} height={200} />
             </div>
 
@@ -246,11 +246,18 @@ export default function Home() {
                 </span>
               </p> */}
 
-              <Link href="/register" className="w-full">
-                <AnimatedButton fullWidth>
-                  Commencer
-                </AnimatedButton>
-              </Link>
+              <div className="w-full flex flex-col md:flex-row gap-3">
+                <Link href="/register" className="w-full">
+                  <AnimatedButton fullWidth>
+                    Commencer
+                  </AnimatedButton>
+                </Link>
+                <Link href="/login" className="w-full">
+                  <AnimatedButton fullWidth variant="outline">
+                    Se connecter
+                  </AnimatedButton>
+                </Link>
+              </div>
             </motion.div>
 
             {/* Envoyer un message */}
@@ -374,7 +381,7 @@ export default function Home() {
       </main>
       
       <motion.footer 
-        className="py-6 border-t border-gray-800"
+        className="py-6 border-t border-gray-800 mt-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 0.5 }}

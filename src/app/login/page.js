@@ -125,7 +125,7 @@ export default function Login() {
                   <span className="text-gray-400">+237</span>
                 </div>
                 <div className="relative flex-1">
-                  <FaPhone className="absolute top-3 left-3 text-gray-light" />
+                  <FaPhone className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-light" />
                   <input
                     type="tel"
                     name="phone"
@@ -142,7 +142,7 @@ export default function Login() {
             </div>
             
             <div className="relative">
-              <FaLock className="absolute top-3 left-3 text-gray-light" />
+              <FaLock className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-light" />
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
@@ -154,7 +154,7 @@ export default function Login() {
               />
               <button
                 type="button"
-                className="absolute top-3 right-3 text-gray-light hover:text-white transition-colors"
+                className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-light hover:text-white transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}

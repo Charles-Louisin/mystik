@@ -247,7 +247,7 @@ export default function Register() {
                       <span className="text-gray-400">+237</span>
                     </div>
                     <div className="relative flex-1">
-                      <FaPhone className="absolute top-3 left-3 text-gray-light" />
+                      <FaPhone className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-light" />
                       <input
                         type="tel"
                         name="phone"
@@ -319,7 +319,7 @@ export default function Register() {
                     Nom d'utilisateur
                   </label>
                   <div className="relative">
-                    <FaUser className="absolute top-3 left-3 text-gray-light" />
+                    <FaUser className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-light" />
                     <input
                       type="text"
                       name="username"
@@ -402,7 +402,7 @@ export default function Register() {
                     Mot de passe
                   </label>
                   <div className="relative">
-                    <FaLock className="absolute top-3 left-3 text-gray-light" />
+                    <FaLock className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-light" />
                     <input
                       type={showPassword ? "text" : "password"}
                       name="password"
@@ -416,7 +416,7 @@ export default function Register() {
                     />
                     <button
                       type="button"
-                      className="absolute top-3 right-3 text-gray-light hover:text-white transition-colors"
+                      className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-light hover:text-white transition-colors"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -428,7 +428,7 @@ export default function Register() {
                     Confirmer le mot de passe
                   </label>
                   <div className="relative">
-                    <FaLock className="absolute top-3 left-3 text-gray-light" />
+                    <FaLock className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-light" />
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       name="confirmPassword"
@@ -446,7 +446,7 @@ export default function Register() {
                     />
                     <button
                       type="button"
-                      className="absolute top-3 right-3 text-gray-light hover:text-white transition-colors"
+                      className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-light hover:text-white transition-colors"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
                       {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
