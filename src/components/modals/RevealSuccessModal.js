@@ -148,9 +148,7 @@ const RevealSuccessModal = ({
     try {
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.get(
         `${apiBaseUrl}/api/users/me/keys`,
@@ -174,9 +172,7 @@ const RevealSuccessModal = ({
       setIsLoadingHints(true);
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       // Récupérer les indices depuis le serveur
       const { data } = await axios.get(
@@ -320,9 +316,7 @@ const RevealSuccessModal = ({
     try {
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const response = await axios.post(
         `${apiBaseUrl}/api/messages/${messageId}/check-riddle`,
@@ -436,9 +430,7 @@ const RevealSuccessModal = ({
         return;
       }
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       // S'assurer que tous les indices ont un type valide
       const validHints = obtainedHints.filter(hint => hint && hint.type);
@@ -624,9 +616,7 @@ const RevealSuccessModal = ({
     try {
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       await axios.patch(
         `${apiBaseUrl}/api/messages/${messageId}/name-discovered`,
@@ -655,9 +645,7 @@ const RevealSuccessModal = ({
     try {
       const token = localStorage.getItem("token");
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const response = await axios.patch(
         `${apiBaseUrl}/api/messages/${messageId}/user-discovered`,

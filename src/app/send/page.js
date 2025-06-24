@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { FaArrowLeft, FaUser, FaSmile, FaQuestion, FaLightbulb, FaPaperPlane, FaSearch, FaTimes, FaSignInAlt, FaUserPlus, FaCheck, FaEye, FaEyeSlash, FaMicrophone, FaStop, FaVolumeUp, FaTrash, FaPause, FaPlay, FaArrowRight } from "react-icons/fa";
 import toast from "react-hot-toast";
 import axios from "axios";
+import { loadAudioWithAuth, setupAudioElement } from './audio_fix';
 
 const emotionalFilters = [
   { id: "neutre", name: "Neutre", color: "#9e9e9e", emoji: "✨", bgColor: "rgba(158, 158, 158, 0.15)" },
@@ -346,9 +347,7 @@ function SendMessageContent({ recipientLink }) {
     setIsLoading(true);
     
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       // Code corrigé pour l'envoi avec audio dans src/app/send/page.js
 // Remplacer le bloc existant par celui-ci
@@ -588,9 +587,7 @@ if (formData.voiceMessage) {
     setLoginError('');
     
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.post(`${apiBaseUrl}/api/auth/login`, {
         phone: loginForm.phone,
@@ -643,9 +640,7 @@ if (formData.voiceMessage) {
     setUsernameAvailable(null);
     
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.get(`${apiBaseUrl}/api/auth/check-username/${username}`);
       setUsernameAvailable(data.available);
@@ -664,9 +659,7 @@ if (formData.voiceMessage) {
     setPhoneAvailable(null);
     
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.get(`${apiBaseUrl}/api/auth/check-phone/${phone}`);
       setPhoneAvailable(data.available);
@@ -691,9 +684,7 @@ if (formData.voiceMessage) {
     }
     
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const { data } = await axios.post(`${apiBaseUrl}/api/auth/register`, {
         username: registerForm.username,
@@ -948,60 +939,7 @@ if (formData.voiceMessage) {
     }
   };
   
-    // Fonction pour charger l'audio depuis une URL avec authentification
-  const loadAudioWithAuth = async (url) => {
-    try {
-      // Extraire l'URL de base sans le token
-      let cleanUrl = url;
-      if (url.includes('?')) {
-        cleanUrl = url.split('?')[0];
-      }
-      
-      console.log("Chargement audio depuis URL:", cleanUrl);
-      
-      // Récupérer le token d'authentification
-      const token = localStorage.getItem("token");
-      const headers = {};
-      
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      
-      // Effectuer la requête avec les en-têtes appropriés
-      console.log("En-têtes de requête:", headers);
-      const response = await fetch(cleanUrl, { 
-        headers,
-        // Retirer credentials: 'include' qui cause l'erreur CORS
-        mode: 'cors'
-      });
-      
-      if (!response.ok) {
-        console.error("Réponse HTTP non valide:", response.status, response.statusText);
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-      
-      // Vérifier le type de contenu
-      const contentType = response.headers.get('content-type');
-      console.log("Type de contenu reçu:", contentType);
-      
-      // Convertir en blob avec le bon type MIME
-      const arrayBuffer = await response.arrayBuffer();
-      console.log("Taille des données audio reçues:", arrayBuffer.byteLength, "octets");
-      
-      // Utiliser le type de contenu de la réponse ou un type par défaut
-      const mimeType = contentType || 'audio/mpeg';
-      const blob = new Blob([arrayBuffer], { type: mimeType });
-      
-      // Créer une URL objet
-      const objectUrl = URL.createObjectURL(blob);
-      console.log("URL objet créée:", objectUrl);
-      
-      return objectUrl;
-    } catch (error) {
-      console.error("Erreur lors du chargement de l'audio:", error);
-      throw error;
-    }
-  };
+    // La fonction loadAudioWithAuth est maintenant importée depuis audio_fix.js
   
   // Lire l'enregistrement audio
   const handlePlayAudio = async (e) => {
@@ -1021,75 +959,55 @@ if (formData.voiceMessage) {
           if (audioURL.includes('/api/messages/') || audioURL.includes('voice-message') || audioURL.includes('http')) {
             console.log("Chargement audio avec authentification...");
             try {
+              // Toujours utiliser loadAudioWithAuth pour garantir l'utilisation de l'URL du backend en ligne
               audioSrc = await loadAudioWithAuth(audioURL);
               console.log("Audio chargé avec succès:", audioSrc);
             } catch (err) {
-              console.error("Échec du chargement audio:", err);
+              console.error("Erreur lors du chargement audio avec authentification:", err);
               toast.error("Impossible de charger l'audio. Veuillez réessayer.");
               return;
             }
           }
           
           audioPlayerRef.current = new Audio(audioSrc);
-        
-        // Événement de fin de lecture
-        audioPlayerRef.current.onended = () => {
-          setIsPlaying(false);
-          setAudioProgress(0);
-          setCurrentAudioPosition(0);
-        };
-        
-          // Charger la durée quand l'audio est prêt
-          audioPlayerRef.current.addEventListener('loadedmetadata', () => {
-            if (!isNaN(audioPlayerRef.current.duration) && isFinite(audioPlayerRef.current.duration)) {
-              setAudioDuration(audioPlayerRef.current.duration);
-            }
-          });
           
-          // Ajouter un listener pour détecter quand les données sont disponibles
-          audioPlayerRef.current.addEventListener('loadeddata', () => {
-            if (!isNaN(audioPlayerRef.current.duration) && isFinite(audioPlayerRef.current.duration)) {
-              setAudioDuration(audioPlayerRef.current.duration);
-            }
-          });
-          
-                // Ajouter un listener pour détecter quand l'audio peut être lu
-      audioPlayerRef.current.addEventListener('canplaythrough', () => {
-        if (!isNaN(audioPlayerRef.current.duration) && isFinite(audioPlayerRef.current.duration)) {
-          setAudioDuration(audioPlayerRef.current.duration);
-        }
-      });
-      
-      // Ajouter un listener pour suivre la progression de la lecture
-      audioPlayerRef.current.addEventListener('timeupdate', () => {
-        if (audioPlayerRef.current && !isNaN(audioPlayerRef.current.currentTime) && !isNaN(audioPlayerRef.current.duration)) {
-          const progress = (audioPlayerRef.current.currentTime / audioPlayerRef.current.duration) * 100;
-          setAudioProgress(Math.min(100, Math.max(0, progress)));
-          setCurrentAudioPosition(audioPlayerRef.current.currentTime);
-        }
-      });
-      
-      // Gérer les erreurs de lecture
-      audioPlayerRef.current.onerror = (e) => {
-        console.error("Erreur de lecture audio:", e);
-            console.error("URL audio:", audioURL);
-            console.error("Code d'erreur:", audioPlayerRef.current.error?.code);
-            console.error("Message d'erreur:", audioPlayerRef.current.error?.message);
-        setIsPlaying(false);
-            
-            // Nettoyer et réinitialiser en cas d'erreur
-            if (audioPlayerRef.current) {
-              try {
-                audioPlayerRef.current.pause();
-                audioPlayerRef.current.removeAttribute('src');
-                audioPlayerRef.current.load();
-              } catch (cleanupError) {
-                console.error("Erreur lors du nettoyage audio:", cleanupError);
+          // Utiliser setupAudioElement pour configurer l'élément audio
+          setupAudioElement(audioPlayerRef.current, {
+            onError: (e) => {
+              console.error("Erreur de lecture audio:", e);
+              console.error("URL audio:", audioURL);
+              console.error("Code d'erreur:", audioPlayerRef.current.error?.code);
+              console.error("Message d'erreur:", audioPlayerRef.current.error?.message);
+              setIsPlaying(false);
+              
+              // Nettoyer et réinitialiser en cas d'erreur
+              if (audioPlayerRef.current) {
+                try {
+                  audioPlayerRef.current.pause();
+                  audioPlayerRef.current.removeAttribute('src');
+                  audioPlayerRef.current.load();
+                } catch (cleanupError) {
+                  console.error("Erreur lors du nettoyage audio:", cleanupError);
+                }
               }
+              
+              toast.error("Erreur lors de la lecture audio. Le fichier pourrait être corrompu.");
+            },
+            onSuccess: () => {
+              if (!isNaN(audioPlayerRef.current.duration) && isFinite(audioPlayerRef.current.duration)) {
+                setAudioDuration(audioPlayerRef.current.duration);
+              }
+            },
+            onEnded: () => {
+              setIsPlaying(false);
+              setAudioProgress(0);
+              setCurrentAudioPosition(0);
+            },
+            onProgress: (progress, currentTime) => {
+              setAudioProgress(progress);
+              setCurrentAudioPosition(currentTime);
             }
-            
-            toast.error("Erreur lors de la lecture audio. Le fichier pourrait être corrompu.");
-          };
+          });
           
         } catch (error) {
           console.error("Erreur lors de la création du lecteur audio:", error);
@@ -1141,17 +1059,7 @@ if (formData.voiceMessage) {
             .catch(error => console.error("Erreur lors de la lecture:", error));
           setIsPlaying(true);
           
-          // Mettre à jour la progression
-          progressIntervalRef.current = setInterval(() => {
-            if (audioPlayerRef.current) {
-              const currentTime = audioPlayerRef.current.currentTime || 0;
-              const duration = audioPlayerRef.current.duration || audioDuration || 1;
-              
-              // Calculer le pourcentage de progression
-              const progress = (currentTime / duration) * 100;
-              setAudioProgress(Math.min(100, Math.max(0, progress))); // Limiter entre 0 et 100
-            }
-          }, 100);
+          // La progression est gérée par setupAudioElement
         } catch (error) {
           console.error("Erreur lors de la lecture:", error);
           toast.error("Impossible de lire l'enregistrement");

@@ -57,9 +57,7 @@ export default function GetKeys() {
     
     const fetchUserData = async () => {
       try {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-          ? 'http://localhost:5000' 
-          : window.location.origin);
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
         
         const { data } = await axios.get(`${apiBaseUrl}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -92,9 +90,7 @@ export default function GetKeys() {
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
       
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? 'http://localhost:5000' 
-        : window.location.origin);
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
       
       // Appeler l'API pour ajouter des clés
       const { data } = await axios.post(

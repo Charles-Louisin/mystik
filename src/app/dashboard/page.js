@@ -11,6 +11,7 @@ import axios from "axios";
 
 import RevealSuccessModal from "@/components/modals/RevealSuccessModal";
 import ShareMessageModal from "@/components/modals/ShareMessageModal";
+import { loadAudioWithAuth, setupAudioElement } from '../send/audio_fix';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -72,7 +73,7 @@ export default function Dashboard() {
           if (message.hasVoiceMessage) {
             return {
               ...message,
-              audioUrl: `${apiBaseUrl}/api/messages/${message._id}/voice-message`,
+              audioUrl: `/api/messages/${message._id}/voice-message`,
               isPlaying: false,
               showAnalysis: false, // Initialiser l'état d'affichage de l'analyse
               analyzed: !!message.aiAnalysis // Marquer comme analysé si aiAnalysis existe
@@ -714,7 +715,7 @@ export default function Dashboard() {
         if (message.hasVoiceMessage) {
           return {
             ...message,
-            audioUrl: `${apiBaseUrl}/api/messages/${message._id}/voice-message`,
+            audioUrl: `/api/messages/${message._id}/voice-message`,
             isPlaying: false,
             analyzed: !!message.aiAnalysis // Marquer comme analysé si aiAnalysis existe
           };
@@ -770,7 +771,7 @@ export default function Dashboard() {
         if (message.hasVoiceMessage) {
           return {
             ...message,
-            audioUrl: `${apiBaseUrl}/api/messages/${message._id}/voice-message`,
+            audioUrl: `/api/messages/${message._id}/voice-message`,
             isPlaying: false,
             analyzed: !!message.aiAnalysis // Marquer comme analysé si aiAnalysis existe
           };
@@ -870,10 +871,22 @@ export default function Dashboard() {
         // Utiliser la fonction loadAudioWithAuth pour gérer l'authentification
         const loadAudioWithAuth = async (url) => {
           try {
+            // Récupérer l'URL de base de l'API
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+            
             // Extraire l'URL de base sans le token ou les paramètres
             let cleanUrl = url;
             if (url.includes('?')) {
               cleanUrl = url.split('?')[0];
+            }
+            
+            // Si l'URL ne commence pas par http, ajouter l'URL de base de l'API
+            if (!cleanUrl.startsWith('http')) {
+              // S'assurer que le chemin commence par un slash
+              if (!cleanUrl.startsWith('/')) {
+                cleanUrl = '/' + cleanUrl;
+              }
+              cleanUrl = `${apiBaseUrl}${cleanUrl}`;
             }
             
             console.log("Chargement audio depuis URL:", cleanUrl);
@@ -923,7 +936,7 @@ export default function Dashboard() {
         };
         
         try {
-          const audioUrl = `${apiBaseUrl}/api/messages/${messageId}/voice-message`;
+          const audioUrl = `/api/messages/${messageId}/voice-message`;
           console.log("URL audio originale:", audioUrl);
           const authenticatedAudioSrc = await loadAudioWithAuth(audioUrl);
           audio.src = authenticatedAudioSrc;
