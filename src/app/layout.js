@@ -14,7 +14,7 @@ export const metadata = {
   description: "Plateforme de messagerie anonyme où vous pouvez envoyer et recevoir des messages mystérieux.",
   keywords: ["anonyme", "messagerie", "mystik", "secret", "message"],
   authors: [{ name: "Mystik" }],
-  metadataBase: new URL("https://mystik.app"), // À remplacer par votre domaine réel
+  metadataBase: new URL("https://mystik-three.vercel.app"), // À remplacer par votre domaine réel
 };
 
 export const viewport = {
@@ -34,7 +34,7 @@ export default function RootLayout({ children }) {
               borderRadius: "12px",
               border: "1px solid rgba(255, 255, 255, 0.1)",
             },
-            duration: 3000,
+            duration: 2000,
           }}
         />
         <Layout>

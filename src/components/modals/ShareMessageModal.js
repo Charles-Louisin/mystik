@@ -193,17 +193,17 @@ const ShareMessageModal = ({ isOpen, onClose, message }) => {
                   border: `1px solid ${style.shadowColor.replace(')', ', 0.2)')}` 
                 }}
               >
-                <div className={`${style.textColor} text-sm sm:text-base md:text-lg font-medium text-center max-h-[300px] overflow-y-auto w-full px-2`}>
+                <div className={`${style.textColor} text-base sm:text-lg md:text-xl font-medium text-center max-h-[300px] overflow-y-auto w-full px-2`}>
                   {message?.content || ""}
                 </div>
               </motion.div>
 
               {/* Logo ou watermark */}
               <div className="flex justify-center items-center mt-4">
-                <div className="text-xs text-gray-400 flex items-center">
+                <div className="text-sm text-gray-400 flex items-center">
                   <span className="mr-1 font-semibold">mystik</span>
                   <span className="opacity-50">•</span>
-                  <span className="ml-1 text-gray-500 text-[10px]">message anonyme</span>
+                  <span className="ml-1 text-gray-500">message anonyme</span>
                 </div>
               </div>
             </div>

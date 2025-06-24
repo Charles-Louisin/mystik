@@ -1057,7 +1057,7 @@ export default function Dashboard() {
     <div className="min-h-screen flex flex-col bg-background">
       <header className="border-b border-gray-800 py-3 sm:py-4">
         <div className="container mx-auto px-2 sm:px-4 flex justify-between items-center">
-          <div className="flex items-center">
+          <div href="/" className="flex items-center">
             <Image 
               src="/logo.svg" 
               alt="Mystik Logo" 
@@ -1674,35 +1674,35 @@ export default function Dashboard() {
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ duration: 0.2 }}
                                 >
-                                  <h4 className="text-xs font-medium text-blue-300 mb-1 flex items-center">
-                                    <FaBrain className="mr-1 text-[10px]" />
+                                  <h4 className="text-sm font-medium text-blue-300 mb-1 flex items-center">
+                                    <FaBrain className="mr-1" />
                                     Analyse du message
                                   </h4>
                                   
                                   {typeof message.aiAnalysis === 'string' ? (
-                                    <p className="text-[10px] text-gray-200">
+                                    <p className="text-xs text-gray-200">
                                       {message.aiAnalysis}
                                     </p>
                                   ) : (
                                     <div className="space-y-1">
                                       {message.aiAnalysis.emotionalIntent && (
                                         <div>
-                                          <h5 className="text-[10px] font-medium text-blue-200">Intention émotionnelle:</h5>
-                                          <p className="text-[10px] text-gray-200">{message.aiAnalysis.emotionalIntent}</p>
+                                          <h5 className="text-xs font-medium text-blue-200">Intention émotionnelle:</h5>
+                                          <p className="text-xs text-gray-200">{message.aiAnalysis.emotionalIntent}</p>
                                          </div>
                                       )}
                                       
                                       {message.aiAnalysis.summary && (
                                         <div>
-                                          <h5 className="text-[10px] font-medium text-blue-200">Résumé:</h5>
-                                          <p className="text-[10px] text-gray-200">{message.aiAnalysis.summary}</p>
+                                          <h5 className="text-xs font-medium text-blue-200">Résumé:</h5>
+                                          <p className="text-xs text-gray-200">{message.aiAnalysis.summary}</p>
                                      </div>
                                   )}
                                   
                                       {message.aiAnalysis.suggestionForReply && (
                                         <div>
-                                          <h5 className="text-[10px] font-medium text-blue-200">Suggestion de réponse:</h5>
-                                          <p className="text-[10px] text-gray-200">{message.aiAnalysis.suggestionForReply}</p>
+                                          <h5 className="text-xs font-medium text-blue-200">Suggestion de réponse:</h5>
+                                          <p className="text-xs text-gray-200">{message.aiAnalysis.suggestionForReply}</p>
                                      </div>
                                   )}
                                 </div>
@@ -1797,7 +1797,7 @@ export default function Dashboard() {
                 )}
                 
                 {activeTab === "settings" && (
-                  <div>
+                  <div className="pb-20">
                     <h3 className="text-lg font-semibold mb-4">Paramètres du compte</h3>
                     
                     {/* Onglets des paramètres */}
@@ -2175,7 +2175,7 @@ export default function Dashboard() {
       
       <footer className="py-3 sm:py-4 border-t border-gray-800">
         <div className="container mx-auto px-2 sm:px-4 text-center text-xs sm:text-sm text-gray-light">
-          <p>© {new Date().getFullYear()} Mystik - Tous droits réservés</p>
+          <p>© {new Date().getFullYear()} Mystik - Tous droits réservés <br/> By Charles YIMBNE</p>
         </div>
       </footer>
       

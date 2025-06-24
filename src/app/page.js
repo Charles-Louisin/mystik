@@ -73,12 +73,32 @@ export default function Home() {
           </ul>
         </>,
         <>
+          <AnimatedEmoji emoji="🎤" delay={0.15} /> <span className="font-bold text-xl text-primary">Messages vocaux</span>
+          <p className="mt-2">Exprimez-vous avec votre voix tout en restant anonyme :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Enregistrez des messages vocaux directement depuis l'application</li>
+            <li>Appliquez des filtres vocaux pour masquer votre voix (robot, grave, aigu, alien, anonyme)</li>
+            <li>Prévisualisez votre message vocal avec le filtre avant l'envoi</li>
+            <li>Conservez votre anonymat même en utilisant votre voix</li>
+          </ul>
+        </>,
+        <>
           <AnimatedEmoji emoji="🧩" delay={0.2} /> <span className="font-bold text-xl text-secondary">Indices et devinettes</span>
           <p className="mt-2">Ajoutez une dimension ludique à vos messages :</p>
           <ul className="list-disc pl-6 mt-2 space-y-2">
             <li>Laissez des indices subtils sur votre identité</li>
             <li>Créez des devinettes personnalisées avec questions et réponses</li>
             <li>Proposez des défis que le destinataire doit relever</li>
+          </ul>
+        </>,
+        <>
+          <AnimatedEmoji emoji="🤖" delay={0.25} /> <span className="font-bold text-xl text-secondary">Analyse IA des indices</span>
+          <p className="mt-2">Bénéficiez de l'intelligence artificielle pour résoudre les mystères :</p>
+          <ul className="list-disc pl-6 mt-2 space-y-2">
+            <li>Analyse automatique des indices collectés pour suggérer des pistes</li>
+            <li>Détection des motifs et connexions entre différents messages</li>
+            <li>Suggestions intelligentes pour deviner l'identité de l'expéditeur</li>
+            <li>Aide contextuelle adaptée à votre progression dans le jeu</li>
           </ul>
         </>,
         <>
@@ -381,14 +401,14 @@ export default function Home() {
       </main>
       
       <motion.footer 
-        className="py-6 border-t border-gray-800 mt-8"
+        className="py-4 border-t border-gray-800 mt-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1, duration: 0.5 }}
       >
         <div className="container mx-auto px-4 text-center">
           <p className="text-gray-light">
-            &copy; {new Date().getFullYear()} Mystik - Tous droits réservés
+            &copy; {new Date().getFullYear()} Mystik - Tous droits réservés <br/> By <i>Charles YIMBNE</i>
           </p>
         </div>
       </motion.footer>

@@ -575,7 +575,7 @@ if (formData.voiceMessage) {
     // Correction du problème de décalage horaire (+1h)
     // On soustrait 1 heure à la date sélectionnée pour compenser le décalage
     const selectedDate = new Date(date);
-    selectedDate.setHours(selectedDate.getHours() - 1);
+    selectedDate.setHours(selectedDate.getHours() - 0);
     const correctedDate = selectedDate.toISOString().slice(0, 16);
     
     setFormData({
@@ -1169,135 +1169,204 @@ if (formData.voiceMessage) {
       
       let finalDestination = previewContext.destination;
       
-             // Appliquer les effets selon le filtre
-       switch (filterId) {
-         case "robot":
-           // Effet robot subtil avec bitcrushing simulé
-           const robotFilter = previewContext.createBiquadFilter();
-           const robotGain = previewContext.createGain();
-           const robotCompressor = previewContext.createDynamicsCompressor();
-           
-           robotFilter.type = 'bandpass';
-           robotFilter.frequency.setValueAtTime(1200, previewContext.currentTime);
-           robotFilter.Q.setValueAtTime(3, previewContext.currentTime);
-           
-           robotCompressor.threshold.setValueAtTime(-20, previewContext.currentTime);
-           robotCompressor.knee.setValueAtTime(10, previewContext.currentTime);
-           robotCompressor.ratio.setValueAtTime(8, previewContext.currentTime);
-           robotCompressor.attack.setValueAtTime(0.001, previewContext.currentTime);
-           robotCompressor.release.setValueAtTime(0.05, previewContext.currentTime);
-           
-           robotGain.gain.setValueAtTime(0.8, previewContext.currentTime);
-           
-           source.connect(robotFilter);
-           robotFilter.connect(robotCompressor);
-           robotCompressor.connect(robotGain);
-           robotGain.connect(finalDestination);
-           break;
-           
-         case "grave":
-           // Effet voix grave plus prononcé
-           const graveFilter = previewContext.createBiquadFilter();
-           const graveBass = previewContext.createBiquadFilter();
-           const graveGain = previewContext.createGain();
-           
-           graveFilter.type = "lowpass";
-           graveFilter.frequency.setValueAtTime(600, previewContext.currentTime);
-           graveFilter.Q.setValueAtTime(1.5, previewContext.currentTime);
-           
-           graveBass.type = "lowshelf";
-           graveBass.frequency.setValueAtTime(150, previewContext.currentTime);
-           graveBass.gain.setValueAtTime(15, previewContext.currentTime);
-           
-           graveGain.gain.setValueAtTime(1.2, previewContext.currentTime);
-           
-           source.connect(graveFilter);
-           graveFilter.connect(graveBass);
-           graveBass.connect(graveGain);
-           graveGain.connect(finalDestination);
-           break;
-           
-         case "aiguë":
-           // Effet voix aiguë plus marqué
-           const aigueFilter = previewContext.createBiquadFilter();
-           const aigueTreble = previewContext.createBiquadFilter();
-           const aigueGain = previewContext.createGain();
-           
-           aigueFilter.type = "highpass";
-           aigueFilter.frequency.setValueAtTime(600, previewContext.currentTime);
-           aigueFilter.Q.setValueAtTime(1.2, previewContext.currentTime);
-           
-           aigueTreble.type = "highshelf";
-           aigueTreble.frequency.setValueAtTime(3000, previewContext.currentTime);
-           aigueTreble.gain.setValueAtTime(12, previewContext.currentTime);
-           
-           aigueGain.gain.setValueAtTime(1.1, previewContext.currentTime);
-           
-           source.connect(aigueFilter);
-           aigueFilter.connect(aigueTreble);
-           aigueTreble.connect(aigueGain);
-           aigueGain.connect(finalDestination);
-           break;
-           
-         case "alien":
-           // Effet alien avec chorus et reverb
-           const alienDelay = previewContext.createDelay();
-           const alienFeedback = previewContext.createGain();
-           const alienFilter = previewContext.createBiquadFilter();
-           const alienGain = previewContext.createGain();
-           
-           alienDelay.delayTime.setValueAtTime(0.08, previewContext.currentTime);
-           alienFeedback.gain.setValueAtTime(0.4, previewContext.currentTime);
-           
-           alienFilter.type = 'bandpass';
-           alienFilter.frequency.setValueAtTime(2000, previewContext.currentTime);
-           alienFilter.Q.setValueAtTime(8, previewContext.currentTime);
-           
-           alienGain.gain.setValueAtTime(0.7, previewContext.currentTime);
-           
-           source.connect(alienFilter);
-           source.connect(alienDelay);
-           alienDelay.connect(alienFeedback);
-           alienFeedback.connect(alienDelay);
-           alienDelay.connect(alienGain);
-           alienFilter.connect(alienGain);
-           alienGain.connect(finalDestination);
-           break;
-           
-         case "anonyme":
-           // Effet anonyme avec pitch shifting simulé et distortion légère
-           const anonymeFilter1 = previewContext.createBiquadFilter();
-           const anonymeFilter2 = previewContext.createBiquadFilter();
-           const anonymeGain = previewContext.createGain();
-           const anonymeCompressor = previewContext.createDynamicsCompressor();
-           
-           anonymeFilter1.type = 'bandpass';
-           anonymeFilter1.frequency.setValueAtTime(800, previewContext.currentTime);
-           anonymeFilter1.Q.setValueAtTime(4, previewContext.currentTime);
-           
-           anonymeFilter2.type = 'notch';
-           anonymeFilter2.frequency.setValueAtTime(1600, previewContext.currentTime);
-           anonymeFilter2.Q.setValueAtTime(2, previewContext.currentTime);
-           
-           anonymeCompressor.threshold.setValueAtTime(-15, previewContext.currentTime);
-           anonymeCompressor.ratio.setValueAtTime(12, previewContext.currentTime);
-           anonymeCompressor.attack.setValueAtTime(0.002, previewContext.currentTime);
-           anonymeCompressor.release.setValueAtTime(0.1, previewContext.currentTime);
-           
-           anonymeGain.gain.setValueAtTime(0.9, previewContext.currentTime);
-           
-           source.connect(anonymeFilter1);
-           anonymeFilter1.connect(anonymeFilter2);
-           anonymeFilter2.connect(anonymeCompressor);
-           anonymeCompressor.connect(anonymeGain);
-           anonymeGain.connect(finalDestination);
-           break;
-           
-         default:
-           // Effet normal - pas de traitement
-           source.connect(finalDestination);
-           break;
-       }
+      // Appliquer les effets selon le filtre
+      switch (filterId) {
+        case "robot":
+          // Effet robot subtil avec bitcrushing simulé
+          const robotFilter = previewContext.createBiquadFilter();
+          const robotGain = previewContext.createGain();
+          const robotCompressor = previewContext.createDynamicsCompressor();
+          
+          robotFilter.type = 'bandpass';
+          robotFilter.frequency.setValueAtTime(1200, previewContext.currentTime);
+          robotFilter.Q.setValueAtTime(3, previewContext.currentTime);
+          
+          robotCompressor.threshold.setValueAtTime(-20, previewContext.currentTime);
+          robotCompressor.knee.setValueAtTime(10, previewContext.currentTime);
+          robotCompressor.ratio.setValueAtTime(8, previewContext.currentTime);
+          robotCompressor.attack.setValueAtTime(0.001, previewContext.currentTime);
+          robotCompressor.release.setValueAtTime(0.05, previewContext.currentTime);
+          
+          robotGain.gain.setValueAtTime(0.8, previewContext.currentTime);
+          
+          source.connect(robotFilter);
+          robotFilter.connect(robotCompressor);
+          robotCompressor.connect(robotGain);
+          robotGain.connect(finalDestination);
+          break;
+          
+        case "grave":
+          // Effet voix grave plus prononcé
+          const graveFilter = previewContext.createBiquadFilter();
+          const graveBass = previewContext.createBiquadFilter();
+          const graveGain = previewContext.createGain();
+          
+          graveFilter.type = "lowpass";
+          graveFilter.frequency.setValueAtTime(600, previewContext.currentTime);
+          graveFilter.Q.setValueAtTime(1.5, previewContext.currentTime);
+          
+          graveBass.type = "lowshelf";
+          graveBass.frequency.setValueAtTime(150, previewContext.currentTime);
+          graveBass.gain.setValueAtTime(15, previewContext.currentTime);
+          
+          graveGain.gain.setValueAtTime(1.2, previewContext.currentTime);
+          
+          source.connect(graveFilter);
+          graveFilter.connect(graveBass);
+          graveBass.connect(graveGain);
+          graveGain.connect(finalDestination);
+          break;
+          
+        case "aiguë":
+          // Effet voix aiguë amélioré avec modulation
+          const aigueFilter = previewContext.createBiquadFilter();
+          const aigueTreble = previewContext.createBiquadFilter();
+          const aigueGain = previewContext.createGain();
+          const aigueCompressor = previewContext.createDynamicsCompressor();
+          
+          aigueFilter.type = "highpass";
+          aigueFilter.frequency.setValueAtTime(800, previewContext.currentTime);
+          aigueFilter.Q.setValueAtTime(1.5, previewContext.currentTime);
+          
+          aigueTreble.type = "highshelf";
+          aigueTreble.frequency.setValueAtTime(3500, previewContext.currentTime);
+          aigueTreble.gain.setValueAtTime(15, previewContext.currentTime);
+          
+          aigueCompressor.threshold.setValueAtTime(-20, previewContext.currentTime);
+          aigueCompressor.ratio.setValueAtTime(12, previewContext.currentTime);
+          aigueCompressor.attack.setValueAtTime(0.003, previewContext.currentTime);
+          aigueCompressor.release.setValueAtTime(0.25, previewContext.currentTime);
+          
+          aigueGain.gain.setValueAtTime(1.1, previewContext.currentTime);
+          
+          // Oscillateur pour moduler la fréquence du filtre
+          const aigueOsc = previewContext.createOscillator();
+          const aigueModGain = previewContext.createGain();
+          
+          aigueOsc.frequency.setValueAtTime(12, previewContext.currentTime);
+          aigueModGain.gain.setValueAtTime(0.005, previewContext.currentTime);
+          
+          aigueOsc.connect(aigueModGain);
+          aigueModGain.connect(aigueFilter.frequency);
+          aigueOsc.start();
+          
+          source.connect(aigueFilter);
+          aigueFilter.connect(aigueTreble);
+          aigueTreble.connect(aigueCompressor);
+          aigueCompressor.connect(aigueGain);
+          aigueGain.connect(finalDestination);
+          break;
+          
+        case "alien":
+          // Effet alien amélioré avec distortion et modulation
+          const alienDelay = previewContext.createDelay();
+          const alienFeedback = previewContext.createGain();
+          const alienFilter1 = previewContext.createBiquadFilter();
+          const alienFilter2 = previewContext.createBiquadFilter();
+          const alienDistortion = previewContext.createWaveShaper();
+          const alienGain = previewContext.createGain();
+          
+          alienDelay.delayTime.setValueAtTime(0.12, previewContext.currentTime);
+          alienFeedback.gain.setValueAtTime(0.6, previewContext.currentTime);
+          
+          alienFilter1.type = 'bandpass';
+          alienFilter1.frequency.setValueAtTime(2000, previewContext.currentTime);
+          alienFilter1.Q.setValueAtTime(8, previewContext.currentTime);
+          
+          alienFilter2.type = 'notch';
+          alienFilter2.frequency.setValueAtTime(1200, previewContext.currentTime);
+          alienFilter2.Q.setValueAtTime(12, previewContext.currentTime);
+          
+          // Créer une courbe de distortion
+          const alienSamples = previewContext.sampleRate;
+          const alienCurve = new Float32Array(alienSamples);
+          for (let i = 0; i < alienSamples; i++) {
+            const x = i * 2 / alienSamples - 1;
+            // Fonction de distortion plus agressive pour masquer la voix
+            alienCurve[i] = Math.tanh(x * 3) * 0.8;
+          }
+          
+          alienDistortion.curve = alienCurve;
+          alienDistortion.oversample = '4x';
+          
+          alienGain.gain.setValueAtTime(0.7, previewContext.currentTime);
+          
+          source.connect(alienFilter1);
+          source.connect(alienDelay);
+          alienDelay.connect(alienFeedback);
+          alienFeedback.connect(alienDelay);
+          alienDelay.connect(alienFilter2);
+          alienFilter1.connect(alienDistortion);
+          alienFilter2.connect(alienDistortion);
+          alienDistortion.connect(alienGain);
+          alienGain.connect(finalDestination);
+          break;
+          
+        case "anonyme":
+          // Effet anonyme amélioré avec formant shifting et distortion
+          const formantFilter1 = previewContext.createBiquadFilter();
+          const formantFilter2 = previewContext.createBiquadFilter();
+          const formantFilter3 = previewContext.createBiquadFilter();
+          const anonymeDistortion = previewContext.createWaveShaper();
+          const anonymeCompressor = previewContext.createDynamicsCompressor();
+          const anonymeGain = previewContext.createGain();
+          
+          // Configurer les filtres formants (simule le changement de voix)
+          formantFilter1.type = 'bandpass';
+          formantFilter1.frequency.setValueAtTime(850, previewContext.currentTime);
+          formantFilter1.Q.setValueAtTime(5, previewContext.currentTime);
+          formantFilter1.gain.setValueAtTime(10, previewContext.currentTime);
+          
+          formantFilter2.type = 'bandpass';
+          formantFilter2.frequency.setValueAtTime(1400, previewContext.currentTime);
+          formantFilter2.Q.setValueAtTime(8, previewContext.currentTime);
+          
+          formantFilter3.type = 'bandpass';
+          formantFilter3.frequency.setValueAtTime(2500, previewContext.currentTime);
+          formantFilter3.Q.setValueAtTime(7, previewContext.currentTime);
+          
+          // Configurer le compresseur
+          anonymeCompressor.threshold.setValueAtTime(-15, previewContext.currentTime);
+          anonymeCompressor.ratio.setValueAtTime(12, previewContext.currentTime);
+          anonymeCompressor.attack.setValueAtTime(0.002, previewContext.currentTime);
+          anonymeCompressor.release.setValueAtTime(0.1, previewContext.currentTime);
+          
+          // Créer une courbe de distortion
+          const anonymeSamples = previewContext.sampleRate;
+          const anonymeCurve = new Float32Array(anonymeSamples);
+          for (let i = 0; i < anonymeSamples; i++) {
+            const x = i * 2 / anonymeSamples - 1;
+            // Fonction de distortion pour masquer la voix
+            anonymeCurve[i] = x * 0.5 * (Math.PI + Math.cos(x * Math.PI));
+          }
+          
+          anonymeDistortion.curve = anonymeCurve;
+          anonymeDistortion.oversample = '4x';
+          
+          anonymeGain.gain.setValueAtTime(0.8, previewContext.currentTime);
+          
+          // Connecter les nœuds avec un merger pour simuler un effet stéréo
+          const merger = previewContext.createChannelMerger(2);
+          
+          source.connect(formantFilter1);
+          source.connect(formantFilter2);
+          source.connect(formantFilter3);
+          
+          formantFilter1.connect(merger, 0, 0);
+          formantFilter2.connect(merger, 0, 0);
+          formantFilter3.connect(merger, 0, 1);
+          
+          merger.connect(anonymeDistortion);
+          anonymeDistortion.connect(anonymeCompressor);
+          anonymeCompressor.connect(anonymeGain);
+          anonymeGain.connect(finalDestination);
+          break;
+          
+        default:
+          // Effet normal - pas de traitement
+          source.connect(finalDestination);
+          break;
+      }
       
       // Jouer un aperçu de 3 secondes maximum
       const duration = Math.min(audioBuffer.duration, 3);
@@ -1614,6 +1683,244 @@ if (formData.voiceMessage) {
             }
             break;
             
+          case "aiguë":
+            // Effet voix aiguë: filtre passe-haut + pitch shifter simulé
+            try {
+              const highPassFilter = audioContextRef.current.createBiquadFilter();
+              highPassFilter.type = "highpass";
+              highPassFilter.frequency.value = 800;
+              highPassFilter.Q.value = 1.5;
+              
+              const trebleBoost = audioContextRef.current.createBiquadFilter();
+              trebleBoost.type = "highshelf";
+              trebleBoost.frequency.value = 3500;
+              trebleBoost.gain.value = 15;
+              
+              // Ajouter un modulateur de fréquence pour masquer davantage la voix
+              const oscillator = audioContextRef.current.createOscillator();
+              oscillator.frequency.value = 12;
+              
+              const modulationGain = audioContextRef.current.createGain();
+              modulationGain.gain.value = 0.005;
+              
+              const aigueCompressor = audioContextRef.current.createDynamicsCompressor();
+              aigueCompressor.threshold.value = -20;
+              aigueCompressor.ratio.value = 12;
+              aigueCompressor.attack.value = 0.003;
+              aigueCompressor.release.value = 0.25;
+              
+              // Connecter les nœuds
+              audioSourceRef.current.connect(highPassFilter);
+              highPassFilter.connect(trebleBoost);
+              trebleBoost.connect(aigueCompressor);
+              
+              oscillator.connect(modulationGain);
+              modulationGain.connect(highPassFilter.frequency);
+              
+              aigueCompressor.connect(audioContextRef.current.destination);
+              
+              // Démarrer l'oscillateur
+              oscillator.start();
+              
+              // Stocker les références pour nettoyage
+              audioEffectsRef.current = {
+                highPassFilter,
+                trebleBoost,
+                oscillator,
+                modulationGain,
+                aigueCompressor
+              };
+            } catch (error) {
+              console.error("Erreur lors de l'application de l'effet aigu:", error);
+              audioSourceRef.current.connect(audioContextRef.current.destination);
+            }
+            break;
+            
+          case "alien":
+            // Effet alien avancé avec modulation et pitch shifting
+            try {
+              // Créer les nœuds audio
+              const alienDelay = audioContextRef.current.createDelay();
+              const alienFeedback = audioContextRef.current.createGain();
+              const alienFilter1 = audioContextRef.current.createBiquadFilter();
+              const alienFilter2 = audioContextRef.current.createBiquadFilter();
+              const alienDistortion = audioContextRef.current.createWaveShaper();
+              const alienGain = audioContextRef.current.createGain();
+              
+              // Configurer le delay et le feedback
+              alienDelay.delayTime.value = 0.12;
+              alienFeedback.gain.value = 0.6;
+              
+              // Configurer les filtres
+              alienFilter1.type = 'bandpass';
+              alienFilter1.frequency.value = 2000;
+              alienFilter1.Q.value = 8;
+              
+              alienFilter2.type = 'notch';
+              alienFilter2.frequency.value = 1200;
+              alienFilter2.Q.value = 12;
+              
+              // Créer une courbe de distortion
+              const alienSamples = audioContextRef.current.sampleRate;
+              const alienCurve = new Float32Array(alienSamples);
+              for (let i = 0; i < alienSamples; i++) {
+                const x = i * 2 / alienSamples - 1;
+                // Fonction de distortion plus agressive pour masquer la voix
+                alienCurve[i] = Math.tanh(x * 3) * 0.8;
+              }
+              
+              alienDistortion.curve = alienCurve;
+              alienDistortion.oversample = '4x';
+              
+              // Configurer le gain final
+              alienGain.gain.value = 0.7;
+              
+              // Connecter les nœuds
+              audioSourceRef.current.connect(alienFilter1);
+              audioSourceRef.current.connect(alienDelay);
+              alienDelay.connect(alienFeedback);
+              alienFeedback.connect(alienDelay);
+              alienDelay.connect(alienFilter2);
+              alienFilter1.connect(alienDistortion);
+              alienFilter2.connect(alienDistortion);
+              alienDistortion.connect(alienGain);
+              alienGain.connect(audioContextRef.current.destination);
+              
+              // Créer un oscillateur pour moduler la fréquence du filtre
+              const alienOscillator = audioContextRef.current.createOscillator();
+              const alienModGain = audioContextRef.current.createGain();
+              
+              alienOscillator.type = 'sine';
+              alienOscillator.frequency.value = 0.3;
+              alienModGain.gain.value = 600;
+              
+              alienOscillator.connect(alienModGain);
+              alienModGain.connect(alienFilter1.frequency);
+              alienOscillator.start();
+              
+              // Créer un intervalle pour faire varier la fréquence du filtre aléatoirement
+              const alienFreqInterval = setInterval(() => {
+                const randomFreq = 1000 + Math.random() * 2000;
+                alienFilter2.frequency.exponentialRampToValueAtTime(
+                  randomFreq,
+                  audioContextRef.current.currentTime + 0.3
+                );
+              }, 300);
+              
+              // Stocker les références pour nettoyage
+              audioEffectsRef.current = {
+                alienDelay,
+                alienFeedback,
+                alienFilter1,
+                alienFilter2,
+                alienDistortion,
+                alienGain,
+                alienOscillator,
+                alienModGain,
+                alienFreqInterval
+              };
+            } catch (error) {
+              console.error("Erreur lors de l'application de l'effet alien:", error);
+              audioSourceRef.current.connect(audioContextRef.current.destination);
+            }
+            break;
+            
+          case "anonyme":
+            // Effet anonyme avec formant shifting et distortion
+            try {
+              // Créer les nœuds audio
+              const formantFilter1 = audioContextRef.current.createBiquadFilter();
+              const formantFilter2 = audioContextRef.current.createBiquadFilter();
+              const formantFilter3 = audioContextRef.current.createBiquadFilter();
+              const anonymeDistortion = audioContextRef.current.createWaveShaper();
+              const anonymeCompressor = audioContextRef.current.createDynamicsCompressor();
+              const anonymeGain = audioContextRef.current.createGain();
+              
+              // Configurer les filtres formants (simule le changement de voix)
+              formantFilter1.type = 'bandpass';
+              formantFilter1.frequency.value = 850;
+              formantFilter1.Q.value = 5;
+              formantFilter1.gain.value = 10;
+              
+              formantFilter2.type = 'bandpass';
+              formantFilter2.frequency.value = 1400;
+              formantFilter2.Q.value = 8;
+              
+              formantFilter3.type = 'bandpass';
+              formantFilter3.frequency.value = 2500;
+              formantFilter3.Q.value = 7;
+              
+              // Configurer le compresseur
+              anonymeCompressor.threshold.value = -20;
+              anonymeCompressor.ratio.value = 12;
+              anonymeCompressor.attack.value = 0.003;
+              anonymeCompressor.release.value = 0.25;
+              
+              // Créer une courbe de distortion
+              const anonymeSamples = audioContextRef.current.sampleRate;
+              const anonymeCurve = new Float32Array(anonymeSamples);
+              for (let i = 0; i < anonymeSamples; i++) {
+                const x = i * 2 / anonymeSamples - 1;
+                // Fonction de distortion pour masquer la voix
+                anonymeCurve[i] = x * 0.5 * (Math.PI + Math.cos(x * Math.PI));
+              }
+              
+              anonymeDistortion.curve = anonymeCurve;
+              anonymeDistortion.oversample = '4x';
+              
+              // Configurer le gain final
+              anonymeGain.gain.value = 0.8;
+              
+              // Connecter les nœuds
+              const merger = audioContextRef.current.createChannelMerger(2);
+              
+              audioSourceRef.current.connect(formantFilter1);
+              audioSourceRef.current.connect(formantFilter2);
+              audioSourceRef.current.connect(formantFilter3);
+              
+              formantFilter1.connect(merger, 0, 0);
+              formantFilter2.connect(merger, 0, 0);
+              formantFilter3.connect(merger, 0, 1);
+              
+              merger.connect(anonymeDistortion);
+              anonymeDistortion.connect(anonymeCompressor);
+              anonymeCompressor.connect(anonymeGain);
+              anonymeGain.connect(audioContextRef.current.destination);
+              
+              // Créer un intervalle pour faire varier les fréquences des formants
+              const formantInterval = setInterval(() => {
+                const shift = Math.random() * 200 - 100;
+                formantFilter1.frequency.exponentialRampToValueAtTime(
+                  850 + shift,
+                  audioContextRef.current.currentTime + 0.2
+                );
+                formantFilter2.frequency.exponentialRampToValueAtTime(
+                  1400 + shift,
+                  audioContextRef.current.currentTime + 0.3
+                );
+                formantFilter3.frequency.exponentialRampToValueAtTime(
+                  2500 + shift,
+                  audioContextRef.current.currentTime + 0.4
+                );
+              }, 200);
+              
+              // Stocker les références pour nettoyage
+              audioEffectsRef.current = {
+                formantFilter1,
+                formantFilter2,
+                formantFilter3,
+                anonymeDistortion,
+                anonymeCompressor,
+                anonymeGain,
+                merger,
+                formantInterval
+              };
+            } catch (error) {
+              console.error("Erreur lors de l'application de l'effet anonyme:", error);
+              audioSourceRef.current.connect(audioContextRef.current.destination);
+            }
+            break;
+            
           default:
             // Pas d'effet (normal)
             audioSourceRef.current.connect(audioContextRef.current.destination);
@@ -1848,10 +2155,11 @@ if (formData.voiceMessage) {
                           value={formData.scheduledDate}
                           onChange={(e) => handleDateChange(e.target.value)}
                           className="input w-full bg-gray-900 text-white"
-                          style={{ colorScheme: "dark" }}
+                          style={{ colorScheme: "light" }}
                         />
                     <p className="text-xs text-gray-light mt-2">
-                      Laisse vide pour un envoi immédiat ou choisis une date future
+                      Laisse vide pour un envoi immédiat ou choisis une date future... <br/>
+                      NB: Si tu constates que la date a été de -1h, pas de panique, c'est normal, c'est parce que l'heure est en UTC+1.
                         </p>
                       </div>
                 </div>
@@ -1945,7 +2253,7 @@ if (formData.voiceMessage) {
                                               <div className="mb-4">
                           <h4 className="text-sm text-gray-light mb-2">Filtres vocaux</h4>
                           <p className="text-xs text-gray-light mb-3">
-                            Cliquez sur un filtre pour entendre un aperçu de 3 secondes
+                            Cliquez sur un filtre pour entendre un aperçu de 3 secondes... <br/> NB: Les filtres ne sont pas au top pour le moment, ils sont en cours de développement.
                           </p>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {voiceFilters.map((filter) => (
