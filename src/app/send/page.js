@@ -563,10 +563,28 @@ if (formData.voiceMessage) {
   };
   
   const handleDateChange = (date) => {
+    // Si la date est vide, on la laisse vide
+    if (!date) {
+      setFormData({
+        ...formData,
+        scheduledDate: ""
+      });
+      return;
+    }
+    
+    // Correction du problème de décalage horaire (+1h)
+    // On soustrait 1 heure à la date sélectionnée pour compenser le décalage
+    const selectedDate = new Date(date);
+    selectedDate.setHours(selectedDate.getHours() - 1);
+    const correctedDate = selectedDate.toISOString().slice(0, 16);
+    
     setFormData({
       ...formData,
-      scheduledDate: date
+      scheduledDate: correctedDate
     });
+    
+    console.log("Date programmée sélectionnée (originale):", date);
+    console.log("Date programmée corrigée (-1h):", correctedDate);
   };
   
   const handleSendAsAuthenticatedToggle = () => {
@@ -970,28 +988,28 @@ if (formData.voiceMessage) {
           }
           
           audioPlayerRef.current = new Audio(audioSrc);
-          
+        
           // Utiliser setupAudioElement pour configurer l'élément audio
           setupAudioElement(audioPlayerRef.current, {
             onError: (e) => {
-              console.error("Erreur de lecture audio:", e);
-              console.error("URL audio:", audioURL);
-              console.error("Code d'erreur:", audioPlayerRef.current.error?.code);
-              console.error("Message d'erreur:", audioPlayerRef.current.error?.message);
-              setIsPlaying(false);
-              
-              // Nettoyer et réinitialiser en cas d'erreur
-              if (audioPlayerRef.current) {
-                try {
-                  audioPlayerRef.current.pause();
-                  audioPlayerRef.current.removeAttribute('src');
-                  audioPlayerRef.current.load();
-                } catch (cleanupError) {
-                  console.error("Erreur lors du nettoyage audio:", cleanupError);
-                }
+        console.error("Erreur de lecture audio:", e);
+            console.error("URL audio:", audioURL);
+            console.error("Code d'erreur:", audioPlayerRef.current.error?.code);
+            console.error("Message d'erreur:", audioPlayerRef.current.error?.message);
+        setIsPlaying(false);
+            
+            // Nettoyer et réinitialiser en cas d'erreur
+            if (audioPlayerRef.current) {
+              try {
+                audioPlayerRef.current.pause();
+                audioPlayerRef.current.removeAttribute('src');
+                audioPlayerRef.current.load();
+              } catch (cleanupError) {
+                console.error("Erreur lors du nettoyage audio:", cleanupError);
               }
-              
-              toast.error("Erreur lors de la lecture audio. Le fichier pourrait être corrompu.");
+            }
+            
+            toast.error("Erreur lors de la lecture audio. Le fichier pourrait être corrompu.");
             },
             onSuccess: () => {
               if (!isNaN(audioPlayerRef.current.duration) && isFinite(audioPlayerRef.current.duration)) {
@@ -1614,12 +1632,12 @@ if (formData.voiceMessage) {
   // Rendu du composant SendMessageContent
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <main className="flex-1 flex items-center justify-center p-0 sm:p-6">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="card p-4 sm:p-8 w-full h-full sm:h-auto sm:max-w-md rounded-none sm:rounded-2xl"
+          className="card p-4 sm:p-8 w-full h-full sm:h-auto sm:max-w-md rounded-xl shadow-lg"
         >
           <div className="flex items-center justify-center mb-8 relative">
             <Link href="/" className="absolute left-0 top-0 text-gray-light hover:text-white">

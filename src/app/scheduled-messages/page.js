@@ -91,7 +91,6 @@ export default function ScheduledMessages() {
         
         // Vérifier si le message existe et a les propriétés nécessaires
         if (!message || !message.scheduled || !message.scheduled.revealDate) {
-          delete newCountdowns[messageId];
           return;
         }
         
@@ -100,7 +99,14 @@ export default function ScheduledMessages() {
         const timeLeft = targetDate - now;
         
         if (timeLeft <= 0) {
-          delete newCountdowns[messageId];
+          // Au lieu de supprimer le compte à rebours, on le met à zéro
+          newCountdowns[messageId] = {
+            days: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0
+          };
+          
           // Éventuellement, rafraîchir la liste des messages si un compte à rebours expire
           if (Object.keys(newCountdowns).length === 0) {
             fetchScheduledMessages();
@@ -159,84 +165,84 @@ export default function ScheduledMessages() {
         </div>
       </header>
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4 md:py-8 pt-8 md:pt-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="card p-6 mb-6"
+          className="card p-4 md:p-6 mb-4 md:mb-6"
         >
-          <div className="flex items-center mb-4">
-            <FaClock className="text-primary text-xl mr-3" />
-            <h2 className="text-lg font-semibold">Messages en attente de révélation</h2>
+          <div className="flex items-center mb-3 md:mb-4">
+            <FaClock className="text-primary text-lg md:text-xl mr-2 md:mr-3" />
+            <h2 className="text-base md:text-lg font-semibold">Messages en attente de révélation</h2>
           </div>
           
-          <p className="text-gray-light mb-6">
+          <p className="text-gray-light text-sm md:text-base mb-4 md:mb-6">
             Ces messages vous seront révélés automatiquement à la date prévue. Vous recevrez une notification lorsqu'ils seront disponibles.
           </p>
           
           {scheduledMessages.length === 0 ? (
-            <div className="text-center py-12">
-              <FaCalendarAlt className="text-4xl text-gray-700 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">Pas de messages programmés</h3>
-              <p className="text-gray-light">
+            <div className="text-center py-8 md:py-12">
+              <FaCalendarAlt className="text-3xl md:text-4xl text-gray-700 mx-auto mb-3 md:mb-4" />
+              <h3 className="text-base md:text-lg font-medium mb-2">Pas de messages programmés</h3>
+              <p className="text-sm md:text-base text-gray-light">
                 Aucun message du futur n'est actuellement en attente.
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {scheduledMessages.map(message => (
                 <motion.div
                   key={message._id}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.3 }}
-                  className="border border-gray-800 rounded-lg p-4"
+                  className="border border-gray-800 rounded-lg p-3 md:p-4"
                 >
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex justify-between items-start mb-2 md:mb-3">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center mr-3">
-                        <span className="text-xl">🕒</span>
+                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-800 flex items-center justify-center mr-2 md:mr-3">
+                        <span className="text-lg md:text-xl">🕒</span>
                       </div>
                       <div>
-                        <h4 className="font-medium">Message mystère</h4>
+                        <h4 className="font-medium text-sm md:text-base">Message mystère</h4>
                         <span className="text-xs text-gray-light">
                           Prévu pour: {formatDate(message.scheduled.revealDate)}
                         </span>
                       </div>
                     </div>
                     
-                    <div className="bg-gray-800 px-3 py-1 rounded text-sm">
+                    <div className="bg-gray-800 px-2 md:px-3 py-1 rounded text-xs md:text-sm">
                       Message du futur
                     </div>
                   </div>
                   
                   {countdowns[message._id] && (
-                    <div className="mt-4 bg-gray-800 p-3 rounded-lg">
-                      <p className="text-sm text-gray-light mb-2">Temps restant:</p>
-                      <div className="grid grid-cols-4 gap-2 text-center">
-                        <div className="bg-background rounded p-2">
-                          <div className="text-xl font-bold">{countdowns[message._id].days}</div>
+                    <div className="mt-3 md:mt-4 bg-gray-800 p-2 md:p-3 rounded-lg">
+                      <p className="text-xs md:text-sm text-gray-light mb-1 md:mb-2">Temps restant:</p>
+                      <div className="grid grid-cols-4 gap-1 md:gap-2 text-center">
+                        <div className="bg-background rounded p-1 md:p-2">
+                          <div className="text-base md:text-xl font-bold">{countdowns[message._id].days}</div>
                           <div className="text-xs text-gray-light">Jours</div>
                         </div>
-                        <div className="bg-background rounded p-2">
-                          <div className="text-xl font-bold">{countdowns[message._id].hours}</div>
+                        <div className="bg-background rounded p-1 md:p-2">
+                          <div className="text-base md:text-xl font-bold">{countdowns[message._id].hours}</div>
                           <div className="text-xs text-gray-light">Heures</div>
                         </div>
-                        <div className="bg-background rounded p-2">
-                          <div className="text-xl font-bold">{countdowns[message._id].minutes}</div>
+                        <div className="bg-background rounded p-1 md:p-2">
+                          <div className="text-base md:text-xl font-bold">{countdowns[message._id].minutes}</div>
                           <div className="text-xs text-gray-light">Minutes</div>
                         </div>
-                        <div className="bg-background rounded p-2">
-                          <div className="text-xl font-bold">{countdowns[message._id].seconds}</div>
+                        <div className="bg-background rounded p-1 md:p-2">
+                          <div className="text-base md:text-xl font-bold">{countdowns[message._id].seconds}</div>
                           <div className="text-xs text-gray-light">Secondes</div>
                         </div>
                       </div>
                     </div>
                   )}
                   
-                  <div className="mt-4 border-t border-gray-800 pt-3">
-                    <p className="text-sm text-gray-light">
+                  <div className="mt-3 md:mt-4 border-t border-gray-800 pt-2 md:pt-3">
+                    <p className="text-xs md:text-sm text-gray-light">
                       Ce message est programmé et sera automatiquement révélé à la date prévue.
                     </p>
                   </div>

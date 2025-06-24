@@ -1,191 +1,140 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaTimes, FaShare, FaCopy, FaHeart, FaAngry, FaSurprise, FaSadTear, FaSmile, FaRegSadTear } from 'react-icons/fa';
+import { FaTimes, FaHeart, FaAngry, FaSurprise, FaSadTear, FaSmile, FaRegSadTear } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 
 // Définition des styles et animations pour chaque émotion
 const emotionStyles = {
   amour: {
-    gradient: "from-pink-600 to-pink-800",
-    bgHeader: "bg-pink-900",
-    bgFooter: "bg-pink-900/70",
-    textColor: "text-pink-100",
-    buttonColor: "bg-pink-700 hover:bg-pink-600",
-    icon: FaHeart,
-    shadowColor: "rgba(233, 30, 99, 0.3)",
+    gradient: "from-pink-500 via-pink-600 to-pink-700",
+    bgHeader: "bg-gradient-to-r from-pink-800 to-pink-900",
+    textColor: "text-pink-50",
+    shadowColor: "rgba(233, 30, 99, 0.4)",
     emoji: "❤️",
     animationMessage: {
       animate: { 
-        scale: [1, 1.02, 1],
-        boxShadow: ["0 0 0 rgba(233, 30, 99, 0)", "0 0 15px rgba(233, 30, 99, 0.5)", "0 0 0 rgba(233, 30, 99, 0)"],
+        boxShadow: ["0 0 10px rgba(233, 30, 99, 0.2)", "0 0 20px rgba(233, 30, 99, 0.4)", "0 0 10px rgba(233, 30, 99, 0.2)"],
       },
       transition: { 
-        repeat: Infinity, 
         duration: 2,
-        repeatType: "mirror"
+        repeat: 0
       }
     }
   },
   colère: {
-    gradient: "from-red-700 to-red-900",
-    bgHeader: "bg-red-900",
-    bgFooter: "bg-red-900/70",
-    textColor: "text-red-100 font-bold uppercase",
-    buttonColor: "bg-red-700 hover:bg-red-600",
-    icon: FaAngry,
-    shadowColor: "rgba(244, 67, 54, 0.3)",
+    gradient: "from-red-600 via-red-700 to-red-800",
+    bgHeader: "bg-gradient-to-r from-red-800 to-red-900",
+    textColor: "text-red-50 font-bold",
+    shadowColor: "rgba(244, 67, 54, 0.4)",
     emoji: "😡",
     animationMessage: {
       animate: { 
-        x: [0, -2, 0, 2, 0],
+        boxShadow: ["0 0 10px rgba(244, 67, 54, 0.2)", "0 0 20px rgba(244, 67, 54, 0.4)", "0 0 10px rgba(244, 67, 54, 0.2)"],
       },
       transition: { 
-        repeat: Infinity, 
-        duration: 0.3
+        duration: 2,
+        repeat: 0
       }
     }
   },
   admiration: {
-    gradient: "from-green-600 to-green-800",
-    bgHeader: "bg-green-900",
-    bgFooter: "bg-green-900/70",
-    textColor: "text-green-100",
-    buttonColor: "bg-green-700 hover:bg-green-600",
-    icon: FaSurprise,
-    shadowColor: "rgba(139, 195, 74, 0.3)",
+    gradient: "from-emerald-500 via-emerald-600 to-emerald-700",
+    bgHeader: "bg-gradient-to-r from-emerald-800 to-emerald-900",
+    textColor: "text-emerald-50",
+    shadowColor: "rgba(139, 195, 74, 0.4)",
     emoji: "😮",
     animationMessage: {
       animate: { 
-        scale: [1, 1.03, 1],
+        boxShadow: ["0 0 10px rgba(139, 195, 74, 0.2)", "0 0 20px rgba(139, 195, 74, 0.4)", "0 0 10px rgba(139, 195, 74, 0.2)"],
       },
       transition: { 
-        repeat: Infinity, 
-        duration: 2.5,
-        repeatType: "mirror"
+        duration: 2,
+        repeat: 0
       }
     }
   },
   regret: {
-    gradient: "from-slate-600 to-slate-800",
-    bgHeader: "bg-slate-800",
-    bgFooter: "bg-slate-800/70",
-    textColor: "text-slate-200 italic",
-    buttonColor: "bg-slate-700 hover:bg-slate-600",
-    icon: FaSadTear,
-    shadowColor: "rgba(96, 125, 139, 0.3)",
+    gradient: "from-slate-500 via-slate-600 to-slate-700",
+    bgHeader: "bg-gradient-to-r from-slate-800 to-slate-900",
+    textColor: "text-slate-50 italic",
+    shadowColor: "rgba(96, 125, 139, 0.4)",
     emoji: "😔",
     animationMessage: {
       animate: { 
-        y: [0, -2, 0],
-        opacity: [1, 0.9, 1]
+        boxShadow: ["0 0 10px rgba(96, 125, 139, 0.2)", "0 0 20px rgba(96, 125, 139, 0.4)", "0 0 10px rgba(96, 125, 139, 0.2)"],
       },
       transition: { 
-        repeat: Infinity, 
-        duration: 3
+        duration: 2,
+        repeat: 0
       }
     }
   },
   joie: {
-    gradient: "from-yellow-500 to-amber-700",
-    bgHeader: "bg-amber-800",
-    bgFooter: "bg-amber-800/70",
-    textColor: "text-yellow-100",
-    buttonColor: "bg-yellow-600 hover:bg-yellow-500",
-    icon: FaSmile,
-    shadowColor: "rgba(255, 235, 59, 0.3)",
+    gradient: "from-amber-400 via-amber-500 to-amber-600",
+    bgHeader: "bg-gradient-to-r from-amber-700 to-amber-800",
+    textColor: "text-amber-50",
+    shadowColor: "rgba(255, 235, 59, 0.4)",
     emoji: "😄",
     animationMessage: {
       animate: { 
-        rotate: [-1, 0, 1, 0, -1],
-        backgroundColor: ["rgba(234, 179, 8, 0.8)", "rgba(234, 179, 8, 0.9)", "rgba(234, 179, 8, 0.8)"]
+        boxShadow: ["0 0 10px rgba(255, 235, 59, 0.2)", "0 0 20px rgba(255, 235, 59, 0.4)", "0 0 10px rgba(255, 235, 59, 0.2)"],
       },
       transition: { 
-        repeat: Infinity, 
-        duration: 2
+        duration: 2,
+        repeat: 0
       }
     }
   },
   tristesse: {
-    gradient: "from-blue-600 to-blue-900",
-    bgHeader: "bg-blue-900",
-    bgFooter: "bg-blue-900/70",
-    textColor: "text-blue-100",
-    buttonColor: "bg-blue-700 hover:bg-blue-600",
-    icon: FaRegSadTear,
-    shadowColor: "rgba(33, 150, 243, 0.3)",
+    gradient: "from-blue-500 via-blue-600 to-blue-700",
+    bgHeader: "bg-gradient-to-r from-blue-800 to-blue-900",
+    textColor: "text-blue-50",
+    shadowColor: "rgba(33, 150, 243, 0.4)",
     emoji: "😢",
     animationMessage: {
       animate: { 
-        y: [0, 2, 0],
-        opacity: [1, 0.9, 1]
+        boxShadow: ["0 0 10px rgba(33, 150, 243, 0.2)", "0 0 20px rgba(33, 150, 243, 0.4)", "0 0 10px rgba(33, 150, 243, 0.2)"],
       },
       transition: { 
-        repeat: Infinity, 
-        duration: 3,
-        repeatType: "mirror"
+        duration: 2,
+        repeat: 0
       }
     }
   },
   neutre: {
-    gradient: "from-indigo-600 via-purple-600 to-violet-700",
-    bgHeader: "bg-indigo-900",
-    bgFooter: "bg-indigo-900/70",
-    textColor: "text-gray-100",
-    buttonColor: "bg-indigo-700 hover:bg-indigo-600",
-    icon: FaShare,
-    shadowColor: "rgba(79, 70, 229, 0.3)",
+    gradient: "from-violet-500 via-purple-600 to-indigo-700",
+    bgHeader: "bg-gradient-to-r from-violet-800 to-indigo-900",
+    textColor: "text-gray-50",
+    shadowColor: "rgba(79, 70, 229, 0.4)",
     emoji: "✨",
     animationMessage: {
       animate: { 
-        boxShadow: ["0 0 0 rgba(79, 70, 229, 0)", "0 0 10px rgba(79, 70, 229, 0.3)", "0 0 0 rgba(79, 70, 229, 0)"],
-        scale: [1, 1.01, 1]
+        boxShadow: ["0 0 10px rgba(79, 70, 229, 0.2)", "0 0 20px rgba(79, 70, 229, 0.4)", "0 0 10px rgba(79, 70, 229, 0.2)"],
       },
       transition: { 
-        repeat: Infinity, 
-        duration: 3,
-        repeatType: "mirror"
+        duration: 2,
+        repeat: 0
       }
     }
   }
 };
 
 const ShareMessageModal = ({ isOpen, onClose, message }) => {
-  const [copySuccess, setCopySuccess] = useState(false);
   const messageRef = useRef(null);
+  const [isAnimating, setIsAnimating] = useState(true);
 
   useEffect(() => {
-    // Reset copy status when modal opens
     if (isOpen) {
-      setCopySuccess(false);
+      setIsAnimating(true);
+      
+      // Arrêter l'animation après 2 secondes
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
-
-  // Function to handle screenshot sharing
-  const handleShare = async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Message anonyme de Mystik',
-          text: message.content
-        });
-      } else {
-        handleCopyToClipboard();
-      }
-    } catch (error) {
-      console.error('Erreur lors du partage:', error);
-    }
-  };
-
-  // Function to copy message text to clipboard
-  const handleCopyToClipboard = () => {
-    if (message) {
-      navigator.clipboard.writeText(message.content);
-      setCopySuccess(true);
-      toast.success('Message copié dans le presse-papier!');
-      
-      setTimeout(() => setCopySuccess(false), 3000);
-    }
-  };
 
   // Sélectionner le style en fonction de l'émotion du message
   const emotion = message?.emotionalFilter || 'neutre';
@@ -201,7 +150,7 @@ const ShareMessageModal = ({ isOpen, onClose, message }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm"
           onClick={onClose}
         >
           <motion.div
@@ -209,65 +158,54 @@ const ShareMessageModal = ({ isOpen, onClose, message }) => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="bg-white overflow-hidden w-full max-w-md m-4 rounded-xl shadow-xl"
+            className="bg-gray-900 overflow-hidden w-full max-w-md m-4 rounded-2xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header stylisé selon l'émotion */}
-            <div className={`relative py-4 px-6 border-b ${style.bgHeader} border-opacity-30`}>
+            {/* Header stylisé selon l'émotion avec dégradé */}
+            <div className={`relative py-4 px-6 ${style.bgHeader}`}>
               <button
                 onClick={onClose}
-                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white"
+                className="absolute right-4 top-4 text-white/70 hover:text-white transition-colors"
               >
                 <FaTimes />
               </button>
-              <h2 className="text-xl font-bold text-center text-white">
-                {EmotionIcon && (
-                  <motion.span 
-                    className="inline-block mr-2"
-                    animate={style.animationMessage.animate}
-                    transition={style.animationMessage.transition}
+              <h2 className="text-xl font-bold text-center text-white flex items-center justify-center">
+                {/* <motion.span 
+                  className="inline-block mr-2 text-2xl"
+                  animate={isAnimating ? { scale: [1, 1.2, 1] } : {}}
+                  transition={{ duration: 0.5 }}
                   >
                     {style.emoji}
-                  </motion.span>
-                )}
-                Partager ce message
+                </motion.span> */}
+                <span>Laisse-moi des messages <br/> anonymes !</span>
               </h2>
             </div>
 
-            {/* Message content for sharing - Stylisé selon l'émotion */}
+            {/* Message content for sharing - Stylisé selon l'émotion avec taille augmentée */}
             <div className="p-6 bg-gray-900">
               <motion.div 
                 ref={messageRef}
-                className={`bg-gradient-to-br ${style.gradient} p-6 rounded-xl shadow-lg mb-4`}
-                {...style.animationMessage}
+                className={`bg-gradient-to-br ${style.gradient} p-6 rounded-xl shadow-lg mb-4 min-h-[120px] flex items-center justify-center`}
+                animate={isAnimating ? style.animationMessage.animate : {}}
+                transition={style.animationMessage.transition}
+                style={{ 
+                  boxShadow: `0 8px 32px ${style.shadowColor}`,
+                  border: `1px solid ${style.shadowColor.replace(')', ', 0.2)')}` 
+                }}
               >
-                <div className={`${style.textColor} text-xl font-medium text-center`}>
+                <div className={`${style.textColor} text-sm sm:text-base md:text-lg font-medium text-center max-h-[300px] overflow-y-auto w-full px-2`}>
                   {message?.content || ""}
                 </div>
               </motion.div>
-            </div>
 
-            {/* Actions */}
-            <div className={`p-4 flex justify-between ${style.bgFooter}`}>
-              <motion.button
-                onClick={handleCopyToClipboard}
-                className={`flex items-center justify-center px-4 py-2 rounded-lg text-white ${style.buttonColor} transition-colors`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaCopy className="mr-2" />
-                {copySuccess ? 'Copié !' : 'Copier'}
-              </motion.button>
-              
-              <motion.button
-                onClick={handleShare}
-                className={`flex items-center justify-center px-4 py-2 rounded-lg text-white ${style.buttonColor} transition-colors`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaShare className="mr-2" />
-                Partager
-              </motion.button>
+              {/* Logo ou watermark */}
+              <div className="flex justify-center items-center mt-4">
+                <div className="text-xs text-gray-400 flex items-center">
+                  <span className="mr-1 font-semibold">mystik</span>
+                  <span className="opacity-50">•</span>
+                  <span className="ml-1 text-gray-500 text-[10px]">message anonyme</span>
+                </div>
+              </div>
             </div>
           </motion.div>
         </motion.div>

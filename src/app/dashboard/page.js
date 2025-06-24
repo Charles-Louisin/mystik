@@ -1251,7 +1251,7 @@ export default function Dashboard() {
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-2 max-h-[600px] overflow-y-auto pr-0 sm:pr-1">
+                      <div className="space-y-2 max-h-[600px] overflow-y-auto pr-0 sm:pr-1 pb-20 sm:pb-0">
                         {messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(message => (
                           <motion.div
                             key={message._id}
@@ -1365,23 +1365,23 @@ export default function Dashboard() {
                             </div>
                             
                             {/* Contenu du message stylisé selon l'émotion */}
-                            <div className="p-3">
+                            <div className="p-4">
                               <motion.div 
-                                className={`p-3 rounded-lg mb-2 shadow-sm
-                                  ${message.emotionalFilter === 'amour' ? 'bg-pink-950/40 border-l-2 border-pink-600' : 
-                                    message.emotionalFilter === 'colère' ? 'bg-red-950/40 border-l-2 border-red-600' : 
-                                    message.emotionalFilter === 'admiration' ? 'bg-green-950/40 border-l-2 border-green-600' : 
-                                    message.emotionalFilter === 'regret' ? 'bg-slate-800/70 border-l-2 border-slate-500' : 
-                                    message.emotionalFilter === 'joie' ? 'bg-yellow-950/40 border-l-2 border-yellow-500' : 
-                                    message.emotionalFilter === 'tristesse' ? 'bg-blue-950/40 border-l-2 border-blue-600' : 
-                                    'bg-gray-800/60'
+                                className={`p-4 rounded-xl mb-2 shadow-lg relative overflow-hidden
+                                  ${message.emotionalFilter === 'amour' ? 'bg-gradient-to-br from-pink-950/80 to-pink-900/60 border border-pink-700/50' : 
+                                    message.emotionalFilter === 'colère' ? 'bg-gradient-to-br from-red-950/80 to-red-900/60 border border-red-700/50' : 
+                                    message.emotionalFilter === 'admiration' ? 'bg-gradient-to-br from-green-950/80 to-green-900/60 border border-green-700/50' : 
+                                    message.emotionalFilter === 'regret' ? 'bg-gradient-to-br from-slate-900/90 to-slate-800/70 border border-slate-700/50' : 
+                                    message.emotionalFilter === 'joie' ? 'bg-gradient-to-br from-yellow-950/80 to-amber-900/60 border border-yellow-700/50' : 
+                                    message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-br from-blue-950/80 to-blue-900/60 border border-blue-700/50' : 
+                                    'bg-gradient-to-br from-gray-900/90 to-gray-800/70 border border-gray-700/50'
                                   }`}
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ 
                                   opacity: 1, 
                                   y: 0,
                                   ...( message.emotionalFilter === 'amour' ? { 
-                                    boxShadow: ["0 0 0 rgba(233, 30, 99, 0)", "0 0 8px rgba(233, 30, 99, 0.3)", "0 0 0 rgba(233, 30, 99, 0)"],
+                                    boxShadow: ["0 0 0 rgba(233, 30, 99, 0)", "0 0 15px rgba(233, 30, 99, 0.3)", "0 0 0 rgba(233, 30, 99, 0)"],
                                     transition: { boxShadow: { repeat: Infinity, duration: 2 } }
                                   } : {}),
                                   ...( message.emotionalFilter === 'colère' ? { 
@@ -1395,24 +1395,46 @@ export default function Dashboard() {
                                 }}
                                 transition={{ duration: 0.3 }}
                               >
+                                {/* Effets de fond selon l'émotion */}
+                                <div className="absolute inset-0 opacity-20 pointer-events-none">
+                                  {message.emotionalFilter === 'amour' && (
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(236,72,153,0.2),transparent_70%)]"></div>
+                                  )}
+                                  {message.emotionalFilter === 'colère' && (
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(239,68,68,0.2),transparent_70%)]"></div>
+                                  )}
+                                  {message.emotionalFilter === 'admiration' && (
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(34,197,94,0.2),transparent_70%)]"></div>
+                                  )}
+                                  {message.emotionalFilter === 'regret' && (
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(148,163,184,0.15),transparent_70%)]"></div>
+                                  )}
+                                  {message.emotionalFilter === 'joie' && (
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(250,204,21,0.15),transparent_70%)]"></div>
+                                  )}
+                                  {message.emotionalFilter === 'tristesse' && (
+                                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.15),transparent_70%)]"></div>
+                                  )}
+                                </div>
+                                
                                 {message.emotionalFilter && message.emotionalFilter !== 'neutre' && (
                                   <motion.div 
-                                    className="mb-1.5 flex items-center"
+                                    className="mb-2 flex items-center"
                                     initial={{ opacity: 0, x: -5 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.1 }}
                                   >
                                     <motion.span 
-                                      className={`text-[10px] px-2 py-0.5 rounded-full inline-flex items-center mb-1 shadow-sm
-                                        ${message.emotionalFilter === 'amour' ? 'bg-gradient-to-r from-pink-900 to-pink-800 text-pink-200' : 
-                                          message.emotionalFilter === 'colère' ? 'bg-gradient-to-r from-red-900 to-red-800 text-red-200' : 
-                                          message.emotionalFilter === 'admiration' ? 'bg-gradient-to-r from-green-900 to-green-800 text-green-200' : 
-                                          message.emotionalFilter === 'regret' ? 'bg-gradient-to-r from-slate-800 to-slate-700 text-slate-200' : 
-                                          message.emotionalFilter === 'joie' ? 'bg-gradient-to-r from-yellow-900 to-yellow-800 text-yellow-200' : 
-                                          message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-blue-200' : 
-                                          'bg-gray-700'
+                                      className={`text-xs px-3 py-1 rounded-full inline-flex items-center mb-1 shadow-md
+                                        ${message.emotionalFilter === 'amour' ? 'bg-gradient-to-r from-pink-800 to-pink-700 text-pink-100 border border-pink-600/50' : 
+                                          message.emotionalFilter === 'colère' ? 'bg-gradient-to-r from-red-800 to-red-700 text-red-100 border border-red-600/50' : 
+                                          message.emotionalFilter === 'admiration' ? 'bg-gradient-to-r from-green-800 to-green-700 text-green-100 border border-green-600/50' : 
+                                          message.emotionalFilter === 'regret' ? 'bg-gradient-to-r from-slate-700 to-slate-600 text-slate-100 border border-slate-500/50' : 
+                                          message.emotionalFilter === 'joie' ? 'bg-gradient-to-r from-yellow-800 to-yellow-700 text-yellow-100 border border-yellow-600/50' : 
+                                          message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-r from-blue-800 to-blue-700 text-blue-100 border border-blue-600/50' : 
+                                          'bg-gradient-to-r from-gray-700 to-gray-600 text-white border border-gray-500/50'
                                         }`}
-                                      whileHover={{ scale: 1.03 }}
+                                      whileHover={{ scale: 1.05, boxShadow: "0 0 10px rgba(255, 255, 255, 0.2)" }}
                                     >
                                       {message.emotionalFilter === 'amour' ? '❤️ Amour' :
                                         message.emotionalFilter === 'colère' ? '😡 Colère' :
@@ -1424,14 +1446,15 @@ export default function Dashboard() {
                                     </motion.span>
                                   </motion.div>
                                 )}
+                                
                                 <motion.p 
-                                  className={`text-sm leading-relaxed
-                                    ${message.emotionalFilter === 'amour' ? 'text-pink-100 font-medium' : 
-                                      message.emotionalFilter === 'colère' ? 'text-red-100 font-bold uppercase' : 
-                                      message.emotionalFilter === 'admiration' ? 'text-green-100' : 
-                                      message.emotionalFilter === 'regret' ? 'text-slate-300 italic' : 
-                                      message.emotionalFilter === 'joie' ? 'text-yellow-100' : 
-                                      message.emotionalFilter === 'tristesse' ? 'text-blue-100' : 
+                                  className={`text-base leading-relaxed relative z-10
+                                    ${message.emotionalFilter === 'amour' ? 'text-pink-50 font-medium' : 
+                                      message.emotionalFilter === 'colère' ? 'text-red-50 font-bold uppercase' : 
+                                      message.emotionalFilter === 'admiration' ? 'text-green-50' : 
+                                      message.emotionalFilter === 'regret' ? 'text-slate-200 italic' : 
+                                      message.emotionalFilter === 'joie' ? 'text-yellow-50' : 
+                                      message.emotionalFilter === 'tristesse' ? 'text-blue-50' : 
                                       'text-white'
                                     }`}
                                   initial={{ opacity: 0 }}
@@ -1444,32 +1467,90 @@ export default function Dashboard() {
                               
                               {/* Affichage du message vocal si disponible - Lecteur audio amélioré */}
                               {message.hasVoiceMessage && (
-                                <div className="mt-2 mb-2">
-                                  <div className="flex items-center bg-gray-800/80 backdrop-blur-sm p-1.5 rounded-lg shadow-sm border border-gray-700">
+                                <div className="mt-3 mb-3">
+                                  <div className={`relative overflow-hidden backdrop-blur-md p-3 rounded-xl shadow-lg border
+                                    ${message.emotionalFilter === 'amour' ? 'bg-gradient-to-br from-pink-950/90 to-pink-900/80 border-pink-700/50' : 
+                                      message.emotionalFilter === 'colère' ? 'bg-gradient-to-br from-red-950/90 to-red-900/80 border-red-700/50' : 
+                                      message.emotionalFilter === 'admiration' ? 'bg-gradient-to-br from-green-950/90 to-green-900/80 border-green-700/50' : 
+                                      message.emotionalFilter === 'regret' ? 'bg-gradient-to-br from-slate-900/90 to-slate-800/80 border-slate-700/50' : 
+                                      message.emotionalFilter === 'joie' ? 'bg-gradient-to-br from-yellow-950/90 to-amber-900/80 border-yellow-700/50' : 
+                                      message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-br from-blue-950/90 to-blue-900/80 border-blue-700/50' : 
+                                      'bg-gradient-to-br from-gray-900/90 to-gray-800/90 border-gray-700/50'
+                                    }`}>
+                                    <div className="absolute inset-0 opacity-20">
+                                      {message.voiceFilter === "aiguë" && (
+                                        <div className="absolute inset-0 bg-pink-500/10 bg-[radial-gradient(circle_at_center,_rgba(236,72,153,0.15),transparent_70%)]"></div>
+                                      )}
+                                      {message.voiceFilter === "grave" && (
+                                        <div className="absolute inset-0 bg-blue-500/10 bg-[radial-gradient(circle_at_center,_rgba(59,130,246,0.15),transparent_70%)]"></div>
+                                      )}
+                                      {message.voiceFilter === "robot" && (
+                                        <div className="absolute inset-0 bg-green-500/10 bg-[radial-gradient(circle_at_center,_rgba(34,197,94,0.15),transparent_70%)]"></div>
+                                      )}
+                                      {message.voiceFilter === "echo" && (
+                                        <div className="absolute inset-0 bg-purple-500/10 bg-[radial-gradient(circle_at_center,_rgba(168,85,247,0.15),transparent_70%)]"></div>
+                                      )}
+                                      {(!message.voiceFilter || message.voiceFilter === "normal") && (
+                                        <div className="absolute inset-0 bg-primary/10 bg-[radial-gradient(circle_at_center,_rgba(139,92,246,0.15),transparent_70%)]"></div>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-3 relative z-10">
                                     <motion.button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         toggleAudioPlayback(message._id);
                                       }}
-                                      className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 shadow-md transition-all duration-200 
+                                        className={`w-12 h-12 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 
                                         ${message.isPlaying ? 
-                                          'bg-gradient-to-r from-primary to-purple-700 shadow-primary/30' : 
-                                          'bg-gradient-to-r from-gray-700 to-gray-900 hover:from-primary/70 hover:to-purple-700/70'
-                                        }`}
-                                      whileHover={{ scale: 1.05 }}
+                                            message.emotionalFilter === 'amour' ? 'bg-gradient-to-br from-pink-600 to-pink-800 shadow-pink-500/40' :
+                                            message.emotionalFilter === 'colère' ? 'bg-gradient-to-br from-red-600 to-red-800 shadow-red-500/40' :
+                                            message.emotionalFilter === 'admiration' ? 'bg-gradient-to-br from-green-600 to-green-800 shadow-green-500/40' :
+                                            message.emotionalFilter === 'regret' ? 'bg-gradient-to-br from-slate-500 to-slate-700 shadow-slate-400/40' :
+                                            message.emotionalFilter === 'joie' ? 'bg-gradient-to-br from-yellow-500 to-amber-700 shadow-yellow-500/40' :
+                                            message.emotionalFilter === 'tristesse' ? 'bg-gradient-to-br from-blue-600 to-blue-800 shadow-blue-500/40' :
+                                            'bg-gradient-to-br from-primary to-purple-700 shadow-primary/30'
+                                            : 
+                                            'bg-gradient-to-br from-gray-700 to-gray-900 hover:from-primary/70 hover:to-purple-700/70'
+                                          }`}
+                                        whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(139, 92, 246, 0.4)" }}
                                       whileTap={{ scale: 0.95 }}
+                                        animate={message.isPlaying ? {
+                                          boxShadow: message.emotionalFilter === 'amour' ? 
+                                                    ["0 0 5px rgba(236, 72, 153, 0.4)", "0 0 15px rgba(236, 72, 153, 0.6)", "0 0 5px rgba(236, 72, 153, 0.4)"] :
+                                                    message.emotionalFilter === 'colère' ? 
+                                                    ["0 0 5px rgba(239, 68, 68, 0.4)", "0 0 15px rgba(239, 68, 68, 0.6)", "0 0 5px rgba(239, 68, 68, 0.4)"] :
+                                                    message.emotionalFilter === 'admiration' ? 
+                                                    ["0 0 5px rgba(34, 197, 94, 0.4)", "0 0 15px rgba(34, 197, 94, 0.6)", "0 0 5px rgba(34, 197, 94, 0.4)"] :
+                                                    message.emotionalFilter === 'regret' ? 
+                                                    ["0 0 5px rgba(148, 163, 184, 0.4)", "0 0 15px rgba(148, 163, 184, 0.6)", "0 0 5px rgba(148, 163, 184, 0.4)"] :
+                                                    message.emotionalFilter === 'joie' ? 
+                                                    ["0 0 5px rgba(250, 204, 21, 0.4)", "0 0 15px rgba(250, 204, 21, 0.6)", "0 0 5px rgba(250, 204, 21, 0.4)"] :
+                                                    message.emotionalFilter === 'tristesse' ? 
+                                                    ["0 0 5px rgba(59, 130, 246, 0.4)", "0 0 15px rgba(59, 130, 246, 0.6)", "0 0 5px rgba(59, 130, 246, 0.4)"] :
+                                                    ["0 0 5px rgba(139, 92, 246, 0.4)", "0 0 15px rgba(139, 92, 246, 0.6)", "0 0 5px rgba(139, 92, 246, 0.4)"]
+                                        } : {}}
+                                        transition={{ repeat: Infinity, duration: 2 }}
                                     >
                                       {message.isPlaying ? (
-                                        <FaPause className="text-white text-xs" />
+                                          <FaPause className="text-white text-sm" />
                                       ) : (
-                                        <FaPlay className="text-white text-xs ml-0.5" />
+                                          <FaPlay className="text-white text-sm ml-1" />
                                       )}
                                     </motion.button>
+                                      
                                     <div className="flex-1">
-                                      <div className="flex justify-between items-center mb-0.5">
-                                        <span className="text-[10px] font-medium text-white">Message vocal</span>
+                                        <div className="flex justify-between items-center mb-2">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium text-white">Message vocal</span>
                                         {message.voiceFilter && message.voiceFilter !== "normal" && (
-                                          <span className="text-[8px] bg-primary/20 text-primary font-medium px-1.5 py-0.5 rounded-full">
+                                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium 
+                                                ${message.voiceFilter === "aiguë" ? "bg-pink-500/20 text-pink-300 border border-pink-500/30" : 
+                                                 message.voiceFilter === "grave" ? "bg-blue-500/20 text-blue-300 border border-blue-500/30" : 
+                                                 message.voiceFilter === "robot" ? "bg-green-500/20 text-green-300 border border-green-500/30" : 
+                                                 message.voiceFilter === "echo" ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" : 
+                                                 "bg-primary/20 text-primary border border-primary/30"}`}
+                                              >
                                             {message.voiceFilter === "aiguë" ? "Aigu" : 
                                              message.voiceFilter === "grave" ? "Grave" : 
                                              message.voiceFilter === "robot" ? "Robot" : 
@@ -1478,33 +1559,13 @@ export default function Dashboard() {
                                           </span>
                                          )}
                                        </div>
-                                      <div className="h-1 bg-gray-700 rounded-full overflow-hidden shadow-inner">
-                                        <motion.div 
-                                          className={`h-full rounded-full ${
-                                            message.voiceFilter === "aiguë" ? "bg-gradient-to-r from-pink-500 to-pink-400" :
-                                            message.voiceFilter === "grave" ? "bg-gradient-to-r from-blue-600 to-blue-400" :
-                                            message.voiceFilter === "robot" ? "bg-gradient-to-r from-green-500 to-green-400" :
-                                            message.voiceFilter === "echo" ? "bg-gradient-to-r from-purple-600 to-purple-400" :
-                                            "bg-gradient-to-r from-primary to-purple-400"
-                                          }`}
-                                          style={{ width: `${message.isPlaying ? audioProgress : 0}%` }}
-                                          animate={message.isPlaying ? {
-                                            boxShadow: ["0 0 3px rgba(139, 92, 246, 0.4)", "0 0 8px rgba(139, 92, 246, 0.6)", "0 0 3px rgba(139, 92, 246, 0.4)"]
-                                          } : {}}
-                                          transition={{ repeat: Infinity, duration: 1.5 }}
-                                        />
-                                       </div>
-                                      <div className="mt-0.5 text-[8px] text-gray-300 flex justify-between">
                                         <motion.span 
+                                            className="text-xs text-gray-300"
                                           animate={message.isPlaying ? { opacity: [0.7, 1, 0.7] } : {}}
                                           transition={{ repeat: Infinity, duration: 1.5 }}
                                         >
                                           {message.isPlaying && playingAudio === message._id && audioPlayerRef.current ? 
-                                            formatTime(audioPlayerRef.current.currentTime) : "00:00"}
-                                        </motion.span>
-                                        <motion.span>
-                                          {message.isPlaying && playingAudio === message._id && audioPlayerRef.current ? 
-                                            formatTime(audioPlayerRef.current.duration || 0) : 
+                                              `${formatTime(audioPlayerRef.current.currentTime)} / ${formatTime(audioPlayerRef.current.duration || 0)}` : 
                                             message.isPlaying ? 
                                               <motion.span 
                                                 animate={{ opacity: [0.5, 1, 0.5] }}
@@ -1513,6 +1574,74 @@ export default function Dashboard() {
                                                 Chargement...
                                               </motion.span> : ""}
                                         </motion.span>
+                                      </div>
+                                        
+                                        <div className="relative h-2 bg-gray-700/70 rounded-full overflow-hidden shadow-inner">
+                                          {/* Fond animé pour la barre de progression */}
+                                        <motion.div 
+                                            className="absolute inset-0 opacity-30"
+                                            animate={message.isPlaying ? {
+                                              background: [
+                                                "linear-gradient(90deg, rgba(139,92,246,0.3) 0%, rgba(168,85,247,0.3) 100%)",
+                                                "linear-gradient(90deg, rgba(139,92,246,0.5) 0%, rgba(168,85,247,0.5) 100%)",
+                                                "linear-gradient(90deg, rgba(139,92,246,0.3) 0%, rgba(168,85,247,0.3) 100%)"
+                                              ]
+                                            } : {}}
+                                            transition={{ repeat: Infinity, duration: 2 }}
+                                          />
+                                          
+                                          {/* Barre de progression */}
+                                          <motion.div 
+                                            className={`h-full rounded-full relative z-10 ${
+                                            message.voiceFilter === "aiguë" ? "bg-gradient-to-r from-pink-500 to-pink-400" :
+                                            message.voiceFilter === "grave" ? "bg-gradient-to-r from-blue-600 to-blue-400" :
+                                            message.voiceFilter === "robot" ? "bg-gradient-to-r from-green-500 to-green-400" :
+                                            message.voiceFilter === "echo" ? "bg-gradient-to-r from-purple-600 to-purple-400" :
+                                            "bg-gradient-to-r from-primary to-purple-400"
+                                          }`}
+                                          style={{ width: `${message.isPlaying ? audioProgress : 0}%` }}
+                                          animate={message.isPlaying ? {
+                                              boxShadow: ["0 0 5px rgba(139, 92, 246, 0.4)", "0 0 10px rgba(139, 92, 246, 0.6)", "0 0 5px rgba(139, 92, 246, 0.4)"]
+                                          } : {}}
+                                          transition={{ repeat: Infinity, duration: 1.5 }}
+                                        />
+                                          
+                                          {/* Effet de pulsation au bout de la barre */}
+                                          {message.isPlaying && (
+                                            <motion.div 
+                                              className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white/80 shadow-lg"
+                                              style={{ left: `${audioProgress}%`, marginLeft: "-6px" }}
+                                              animate={{ scale: [1, 1.2, 1], boxShadow: ["0 0 0px white", "0 0 10px rgba(255,255,255,0.7)", "0 0 0px white"] }}
+                                          transition={{ repeat: Infinity, duration: 1.5 }}
+                                            />
+                                          )}
+                                    </div>
+                                        
+                                        {/* Visualisation d'onde audio (simulée) */}
+                                        {message.isPlaying && (
+                                          <div className="flex items-center justify-center gap-0.5 h-4 mt-2">
+                                            {Array.from({ length: 12 }).map((_, i) => (
+                                              <motion.div
+                                                key={i}
+                                                className={`w-1 rounded-full ${
+                                                  message.voiceFilter === "aiguë" ? "bg-pink-400/70" :
+                                                  message.voiceFilter === "grave" ? "bg-blue-400/70" :
+                                                  message.voiceFilter === "robot" ? "bg-green-400/70" :
+                                                  message.voiceFilter === "echo" ? "bg-purple-400/70" :
+                                                  "bg-primary/70"
+                                                }`}
+                                                animate={{ 
+                                                  height: [`${Math.random() * 30 + 10}%`, `${Math.random() * 90 + 10}%`, `${Math.random() * 30 + 10}%`] 
+                                                }}
+                                                transition={{ 
+                                                  repeat: Infinity, 
+                                                  duration: 0.6 + Math.random() * 0.8,
+                                                  ease: "easeInOut"
+                                                }}
+                                              />
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -1587,12 +1716,23 @@ export default function Dashboard() {
                                 {(!message.sender || !message.sender.nameDiscovered) && (
                                   <motion.button
                                     onClick={() => openRevealModal(message)}
-                                    className="flex-1 py-1 px-2 bg-gradient-to-r from-primary/20 to-purple-600/20 hover:from-primary/30 hover:to-purple-600/30 backdrop-blur-sm rounded-md border border-primary/30 text-primary-light flex items-center justify-center transition-all duration-200"
-                                    whileHover={{ scale: 1.01, boxShadow: "0 0 8px rgba(139, 92, 246, 0.2)" }}
-                                    whileTap={{ scale: 0.99 }}
-                                >
-                                    <FaEye className="mr-1 text-xs" />
-                                    <span className="font-medium text-xs">Découvrir</span>
+                                    className="flex-1 py-2 px-3 bg-black/40 backdrop-blur-sm rounded-full border border-primary/30 text-primary-light flex items-center justify-center transition-all duration-300 group"
+                                    whileHover={{ 
+                                      scale: 1.02, 
+                                      boxShadow: "0 0 15px rgba(139, 92, 246, 0.25)",
+                                      transition: { duration: 0.2 }
+                                    }}
+                                    whileTap={{ scale: 0.98 }}
+                                  >
+                                    <motion.div
+                                      className="mr-2 text-primary"
+                                      animate={{ rotate: [0, 360] }}
+                                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                      style={{ opacity: 0.8, display: "inline-flex" }}
+                                    >
+                                      <FaEye className="text-sm group-hover:text-primary-light transition-colors duration-300" />
+                                    </motion.div>
+                                    <span className="font-medium text-sm">Découvrir</span>
                                   </motion.button>
                                 )}
                                 
@@ -1600,12 +1740,23 @@ export default function Dashboard() {
                                 {!message.analyzed && (
                                   <motion.button
                                     onClick={() => analyzeMessage(message._id)}
-                                    className="flex-1 py-1 px-2 bg-gradient-to-r from-blue-600/20 to-cyan-500/20 hover:from-blue-600/30 hover:to-cyan-500/30 backdrop-blur-sm rounded-md border border-blue-500/30 text-blue-300 flex items-center justify-center transition-all duration-200"
-                                    whileHover={{ scale: 1.01, boxShadow: "0 0 8px rgba(59, 130, 246, 0.2)" }}
-                                    whileTap={{ scale: 0.99 }}
+                                    className="flex-1 py-2 px-3 bg-black/40 backdrop-blur-sm rounded-full border border-blue-500/30 text-blue-300 flex items-center justify-center transition-all duration-300 group"
+                                    whileHover={{ 
+                                      scale: 1.02, 
+                                      boxShadow: "0 0 15px rgba(59, 130, 246, 0.25)",
+                                      transition: { duration: 0.2 }
+                                    }}
+                                    whileTap={{ scale: 0.98 }}
                                   >
-                                    <FaBrain className="mr-1 text-xs" />
-                                    <span className="font-medium text-xs">Analyser</span>
+                                    <motion.div
+                                      className="mr-2 text-blue-400"
+                                      animate={{ rotateY: [0, 360] }}
+                                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                      style={{ opacity: 0.8, display: "inline-flex" }}
+                                    >
+                                      <FaBrain className="text-sm group-hover:text-blue-200 transition-colors duration-300" />
+                                    </motion.div>
+                                    <span className="font-medium text-sm">Analyser</span>
                                   </motion.button>
                                 )}
                                 
@@ -1616,12 +1767,25 @@ export default function Dashboard() {
                                     setSelectedMessage(message);
                                     setShowShareModal(true);
                                   }}
-                                  className="flex-1 py-1 px-2 bg-gradient-to-r from-green-600/20 to-emerald-500/20 hover:from-green-600/30 hover:to-emerald-500/30 backdrop-blur-sm rounded-md border border-green-500/30 text-green-300 flex items-center justify-center transition-all duration-200"
-                                  whileHover={{ scale: 1.01, boxShadow: "0 0 8px rgba(16, 185, 129, 0.2)" }}
-                                  whileTap={{ scale: 0.99 }}
+                                  className="flex-1 py-2 px-3 bg-black/40 backdrop-blur-sm rounded-full border border-green-500/30 text-green-300 flex items-center justify-center transition-all duration-300 group"
+                                  whileHover={{ 
+                                    scale: 1.02, 
+                                    boxShadow: "0 0 15px rgba(16, 185, 129, 0.25)",
+                                    transition: { duration: 0.2 }
+                                  }}
+                                  whileTap={{ scale: 0.98 }}
+                                >
+                                  <motion.div 
+                                    className="mr-2 text-green-400"
+                                    animate={{ 
+                                      rotate: [0, 15, 0, -15, 0],
+                                    }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                    style={{ opacity: 0.8, display: "inline-flex" }}
                                   >
-                                  <FaShareAlt className="mr-1 text-xs" />
-                                  <span className="font-medium text-xs">Partager</span>
+                                    <FaShareAlt className="text-sm group-hover:text-green-200 transition-colors duration-300" />
+                                  </motion.div>
+                                  <span className="font-medium text-sm">Partager</span>
                                 </motion.button>
                               </div>
                             </div>
@@ -1977,7 +2141,7 @@ export default function Dashboard() {
       )}
       
       {/* Modale pour les options de clés */}
-      {activeTab === "settings" && activeSettingsTab === "keys" && (
+      {/* {activeTab === "settings" && activeSettingsTab === "keys" && (
         <div className="mt-4 border border-gray-800 rounded-lg p-4">
           <h4 className="font-medium mb-3">Gagner des clés de révélation</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -2007,7 +2171,7 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
-      )}
+      )} */}
       
       <footer className="py-3 sm:py-4 border-t border-gray-800">
         <div className="container mx-auto px-2 sm:px-4 text-center text-xs sm:text-sm text-gray-light">
