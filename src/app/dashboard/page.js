@@ -291,9 +291,9 @@ export default function Dashboard() {
   // Fonction pour ouvrir le modal de révélation d'identité
   const openRevealModal = (message) => {
     setSelectedMessage(message);
-    setShowRevealModal(false); // Fermer le modal de révélation standard
+    setShowRevealModal(true); // Fermer le modal de révélation standard
     
-    // Récupérer les indices déjà découverts
+    // Récupérer les indices déjà découverts (mais sans ouvrir automatiquement le modal de devinettes)
     const fetchHints = async () => {
       try {
         const token = localStorage.getItem("token");
@@ -426,7 +426,7 @@ export default function Dashboard() {
   const closeRevealModal = () => {
     setShowRevealModal(false);
     setSelectedMessage(null);
-    setRiddleAnswer("");
+    // setRiddleAnswer("");
   };
   
   // Fonction pour révéler l'identité d'un expéditeur
@@ -2080,6 +2080,11 @@ export default function Dashboard() {
                       ? `Vous avez ${user.revealKeys} clé${user.revealKeys > 1 ? 's' : ''}`
                       : "Vous n'avez pas de clé"}
                   </div>
+                  {user?.revealKeys <= 0 && (
+                    <div className="text-xs text-primary mt-1">
+                      Allez dans "Paramètres" puis "Clés" pour obtenir des clés
+                    </div>
+                  )}
                 </div>
               </button>
               

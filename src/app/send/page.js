@@ -2174,11 +2174,11 @@ if (formData.voiceMessage) {
                   {!audioURL && !isRecording && (
                     <button
                       type="button"
-                      onClick={startRecording}
-                      className="btn-primary w-full flex items-center justify-center"
+                      onClick={() => toast("Fonctionnalité à venir")}
+                      className="btn-primary w-full flex items-center justify-center opacity-70"
                     >
                       <FaMicrophone className="mr-2" />
-                      Enregistrer un message vocal
+                      Enregistrer un message vocal (bientôt disponible)
                     </button>
                   )}
                   
