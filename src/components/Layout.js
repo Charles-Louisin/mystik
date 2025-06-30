@@ -6,6 +6,12 @@ import React from "react";
 import AnimatedBackground from "./animations/AnimatedBackground";
 import PageTransition from "./animations/PageTransition";
 import LoadingScreen from "./animations/LoadingScreen";
+import dynamic from "next/dynamic";
+
+// Import dynamique du composant InstallPWA pour éviter les erreurs SSR
+const InstallPWA = dynamic(() => import("./ui/InstallPWA"), {
+  ssr: false,
+});
 
 const Layout = ({ children }) => {
   const pathname = usePathname();
@@ -40,6 +46,9 @@ const Layout = ({ children }) => {
           </PageTransition>
         )}
       </AnimatePresence>
+      
+      {/* Bouton d'installation PWA */}
+      <InstallPWA />
     </>
   );
 };
