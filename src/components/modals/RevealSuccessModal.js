@@ -70,25 +70,22 @@ const RevealSuccessModal = ({
       setGuessType('nickname');
       setGuessResponseMessage('');
       
-      // Vérifier si une devinette est disponible et l'afficher
+      // Réinitialiser les états d'affichage pour montrer l'écran d'accueil par défaut
+      setShowRiddle(false);
+      setShowForm(false);
+      
+      // Ne pas automatiquement afficher la devinette ou le formulaire
+      // L'utilisateur choisira lui-même via les boutons de l'écran d'accueil
       if (senderInfo && senderInfo.riddle && senderInfo.riddle.question && !senderInfo.riddleSolved) {
         console.log("Devinette disponible:", senderInfo.riddle.question);
-        setShowRiddle(true);
-        setShowForm(false);
-      } else {
-        setShowRiddle(false);
-        
-        // Si le nom est découvert mais pas l'utilisateur réel, et qu'il y a un utilisateur réel à découvrir,
-        // afficher directement le formulaire de devinette avec le type 'user'
-        if (senderInfo && senderInfo.nameDiscovered && !senderInfo.userDiscovered && senderInfo.realUser) {
-          setShowForm(true);
-          setGuessType('user');
-          setNameRevealed(false);
-          console.log("Affichage du formulaire pour deviner l'utilisateur réel");
-        } else {
-          // Sinon, afficher le formulaire standard
-          setShowForm(true);
-        }
+        // Ne pas activer automatiquement: setShowRiddle(true);
+      }
+      
+      // Si le nom est découvert mais pas l'utilisateur réel, préparer le type de devinette
+      if (senderInfo && senderInfo.nameDiscovered && !senderInfo.userDiscovered && senderInfo.realUser) {
+        setGuessType('user');
+        setNameRevealed(false);
+        console.log("Type de devinette défini sur 'user' pour deviner l'utilisateur réel");
       }
       
       // Initialiser les indices découverts à partir des données du sender
@@ -134,7 +131,8 @@ const RevealSuccessModal = ({
           if (parsedHints.length > 0 && (!obtainedHints || parsedHints.length > obtainedHints.length)) {
             console.log("Mise à jour des indices avec ceux du localStorage");
             setObtainedHints(parsedHints);
-            setShowForm(true);
+            // Ne pas automatiquement afficher le formulaire
+            // setShowForm(true);
           }
         }
       } catch (error) {
@@ -577,7 +575,7 @@ const RevealSuccessModal = ({
         }
       } catch (error) {
       console.error("Erreur lors de la vérification de la devinette:", error);
-      toast.error("Une erreur s'est produite lors de la vérification");
+      toast.error("Ce n'est pas le bon surnom. Essayez encore !");
       } finally {
         setIsCheckingUser(false);
     }
@@ -792,7 +790,77 @@ const RevealSuccessModal = ({
         
         {/* Affichage conditionnel en fonction de l'état de révélation */}
         {console.log("État actuel:", { userIdentityRevealed, nameRevealed, riddleSolved: senderInfo?.riddleSolved })}
-        {userIdentityRevealed ? (
+        {!userIdentityRevealed && !nameRevealed && !showRiddle && !showForm ? (
+          // Écran d'accueil par défaut
+          <div className="text-center py-4">
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", damping: 12 }}
+              className="mx-auto w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mb-6"
+            >
+              <FaQuestion className="text-3xl text-primary" />
+            </motion.div>
+            
+            <h2 className="text-xl font-bold mb-6">Devinez qui c'est</h2>
+            
+            <p className="text-gray-light mb-8">
+              Essayez de découvrir l'identité de la personne qui vous a envoyé ce message.
+            </p>
+            
+            <div className="space-y-4">
+              {senderInfo && senderInfo.riddle && senderInfo.riddle.question && (
+                <button
+                  onClick={showRiddleForm}
+                  className="btn-primary w-full flex items-center justify-center"
+                >
+                  <FaQuestion className="mr-2" />
+                  Répondre à la devinette
+                </button>
+              )}
+              
+              <button
+                onClick={() => setShowForm(true)}
+                className="btn-secondary w-full flex items-center justify-center"
+              >
+                <FaUser className="mr-2" />
+                Deviner directement
+              </button>
+              
+              <button
+                onClick={unlockHint}
+                disabled={unlockHintLoading || userKeys <= 0}
+                className="btn-outline w-full flex items-center justify-center"
+              >
+                {unlockHintLoading ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 mr-2 border-2 border-primary border-t-transparent rounded-full"></span>
+                    Chargement...
+                  </>
+                ) : userKeys <= 0 ? (
+                  <>
+                    <FaKey className="mr-2" />
+                    Aucune clé disponible: <br/> Allez dans "Paramètres" puis "Clés" pour en obtenir
+                  </>
+                ) : (
+                  <>
+                    <FaUnlock className="mr-2" />
+                    Utiliser une clé ({userKeys} disponible{userKeys > 1 ? 's' : ''})
+                  </>
+                )}
+              </button>
+              
+              {/* Ajouter un bouton pour fermer le modal */}
+              <button
+                onClick={handleClose}
+                className="btn-outline w-full mt-4 flex items-center justify-center"
+              >
+                <FaTimes className="mr-2" />
+                Fermer
+              </button>
+            </div>
+          </div>
+        ) : userIdentityRevealed ? (
           // Affichage pour la découverte complète de l'identité de l'utilisateur
           <motion.div
             initial={{ opacity: 0 }}
@@ -1077,7 +1145,8 @@ const RevealSuccessModal = ({
                 <button 
                   onClick={() => {
                     setShowRiddle(false);
-                    setShowForm(true);
+                    // Ne pas afficher le formulaire pour revenir à l'écran d'accueil par défaut
+                    setShowForm(false);
                   }}
                   className="btn-outline flex-1"
                 >
@@ -1233,7 +1302,7 @@ const RevealSuccessModal = ({
                   Aucun indice découvert pour le moment
                 </p>
                 <p className="text-xs text-gray-light">
-                  Utilisez une clé pour obtenir votre premier indice
+                  Utilisez une clé pour obtenir votre premier indice <br/> Allez dans "Paramètres" puis "Clés" pour en obtenir
                 </p>
               </div>
             )}
@@ -1364,7 +1433,7 @@ const RevealSuccessModal = ({
                   ) : userKeys <= 0 ? (
                     <>
                       <FaKey className="mr-2" />
-                      Aucune clé disponible
+                      Aucune clé disponible: <br/> Allez dans "Paramètres" puis "Clés" pour en obtenir
                     </>
                   ) : (
                     <>
@@ -1389,75 +1458,12 @@ const RevealSuccessModal = ({
             </div>
           </>
         ) : (
-          // Écran d'accueil par défaut
-          <div className="text-center py-4">
-            <motion.div 
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", damping: 12 }}
-              className="mx-auto w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mb-6"
-            >
-              <FaQuestion className="text-3xl text-primary" />
-            </motion.div>
+          // Formulaire pour deviner
+          <>
+            <h3 className="text-xl font-bold text-center mb-6">Devinez qui c'est</h3>
             
-            <h2 className="text-xl font-bold mb-6">Devinez qui c'est</h2>
-            
-            <p className="text-gray-light mb-8">
-              Essayez de découvrir l'identité de la personne qui vous a envoyé ce message.
-            </p>
-            
-            <div className="space-y-4">
-              {senderInfo && senderInfo.riddle && senderInfo.riddle.question && (
-                <button
-                  onClick={showRiddleForm}
-                  className="btn-primary w-full flex items-center justify-center"
-                >
-                  <FaQuestion className="mr-2" />
-                  Répondre à la devinette
-                </button>
-              )}
-              
-              <button
-                onClick={() => setShowForm(true)}
-                className="btn-secondary w-full flex items-center justify-center"
-              >
-                <FaUser className="mr-2" />
-                Deviner directement
-              </button>
-              
-              <button
-                onClick={unlockHint}
-                disabled={unlockHintLoading || userKeys <= 0}
-                className="btn-outline w-full flex items-center justify-center"
-              >
-                {unlockHintLoading ? (
-                  <>
-                    <span className="animate-spin h-4 w-4 mr-2 border-2 border-primary border-t-transparent rounded-full"></span>
-                    Chargement...
-                  </>
-                ) : userKeys <= 0 ? (
-                  <>
-                    <FaKey className="mr-2" />
-                    Aucune clé disponible
-                  </>
-                ) : (
-                  <>
-                    <FaUnlock className="mr-2" />
-                    Utiliser une clé ({userKeys} disponible{userKeys > 1 ? 's' : ''})
-                  </>
-                )}
-              </button>
-              
-              {/* Ajouter un bouton pour fermer le modal */}
-              <button
-                onClick={handleClose}
-                className="btn-outline w-full mt-4 flex items-center justify-center"
-              >
-                <FaTimes className="mr-2" />
-                Fermer
-              </button>
-            </div>
-          </div>
+            {/* Le reste du contenu du formulaire reste inchangé */}
+          </>
         )}
       </motion.div>
     </div>

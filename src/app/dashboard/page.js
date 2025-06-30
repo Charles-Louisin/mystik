@@ -1182,14 +1182,16 @@ export default function Dashboard() {
                   <h3 className="font-semibold mb-2">Messages du futur</h3>
                   <div className="bg-gray-800 p-3 rounded-lg text-center">
                     <div className="text-2xl font-bold">{scheduledMessages}</div>
-                    <div className="text-gray-light text-sm">Messages en attente</div>
+                    <div 
+                    onClick={() => router.push('/scheduled-messages')}
+                    className="text-gray-light text-sm">Messages en attente
+                    </div>
                     <div className="mt-2">
-                      <button 
-                        onClick={() => router.push('/scheduled-messages')}
+                      <p 
                         className="text-primary text-sm hover:underline"
                       >
-                        Voir les détails
-                      </button>
+                        Appuyez pour voir les détails
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1343,7 +1345,7 @@ export default function Dashboard() {
                                       className="text-[10px] bg-gradient-to-r from-green-800 to-emerald-700 text-green-100 px-1.5 py-0.5 rounded-full mt-0.5 inline-block shadow-sm"
                                     >
                                       <FaCheckCircle className="inline-block mr-0.5 text-[8px]" />
-                                      Découvert
+                                      Surnom découvert
                                     </motion.span>
                                   )}
                                   
@@ -2046,137 +2048,6 @@ export default function Dashboard() {
         </div>
       </main>
       
-      {/* Modal de révélation d'identité */}
-      {showRevealModal && selectedMessage && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-gray-900 p-6 rounded-lg w-full max-w-md mx-4"
-          >
-            <h2 className="text-xl font-bold mb-4">Révéler l'identité</h2>
-            
-            <p className="text-gray-light mb-6">
-              Choisissez comment vous souhaitez découvrir les informations cachées de ce message.
-              Vous pourrez voir le surnom, les indices et d'autres détails laissés par l'expéditeur.
-            </p>
-            
-            <div className="space-y-4 mb-6">
-              {/* Option : Utiliser une clé */}
-              <button
-                onClick={() => setRevealMethod("key")}
-                disabled={user?.revealKeys <= 0}
-                className={`p-3 border rounded-lg w-full text-left flex items-center ${
-                  revealMethod === "key" ? "border-primary" : "border-gray-800"
-                } ${user?.revealKeys <= 0 ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                <div className="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center mr-3">
-                  <FaKey />
-                </div>
-                <div>
-                  <div className="font-medium">Utiliser une clé</div>
-                  <div className="text-xs text-gray-light">
-                    {user?.revealKeys > 0 
-                      ? `Vous avez ${user.revealKeys} clé${user.revealKeys > 1 ? 's' : ''}`
-                      : "Vous n'avez pas de clé"}
-                  </div>
-                  {user?.revealKeys <= 0 && (
-                    <div className="text-xs text-primary mt-1">
-                      Allez dans "Paramètres" puis "Clés" pour obtenir des clés
-                    </div>
-                  )}
-                </div>
-              </button>
-              
-              {/* Option : Devinette */}
-              {selectedMessage?.clues?.riddle && (
-                <button
-                  onClick={() => setRevealMethod("riddle")}
-                  className={`p-3 border rounded-lg w-full text-left flex items-center ${
-                    revealMethod === "riddle" ? "border-primary" : "border-gray-800"
-                  }`}
-                >
-                  <div className="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center mr-3">
-                    <FaQuestion />
-                  </div>
-                  <div>
-                    <div className="font-medium">Répondre à la devinette</div>
-                    <div className="text-xs text-gray-light">
-                      {selectedMessage.clues.riddle.question}
-                    </div>
-                  </div>
-                </button>
-              )}
-            </div>
-            
-            {/* Champ de réponse pour la devinette */}
-            {revealMethod === "riddle" && (
-              <div className="mb-4">
-                <label className="block text-gray-light mb-1 text-sm">
-                  Votre réponse :
-                </label>
-                <input
-                  type="text"
-                  value={riddleAnswer}
-                  onChange={(e) => setRiddleAnswer(e.target.value)}
-                  className="input w-full"
-                  placeholder="Entrez votre réponse..."
-                />
-              </div>
-            )}
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={closeRevealModal}
-                className="btn-secondary flex-1"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={revealSender}
-                disabled={(revealMethod === "key" && user?.revealKeys <= 0) || 
-                          (revealMethod === "riddle" && !riddleAnswer)}
-                className="btn-primary flex-1"
-              >
-                Révéler
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-      
-      {/* Modale pour les options de clés */}
-      {/* {activeTab === "settings" && activeSettingsTab === "keys" && (
-        <div className="mt-4 border border-gray-800 rounded-lg p-4">
-          <h4 className="font-medium mb-3">Gagner des clés de révélation</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <button
-              onClick={() => earnKey('ad_view')}
-              className="p-3 border border-gray-800 rounded-lg hover:border-primary transition text-center"
-            >
-              <div className="text-2xl mb-2">👁️</div>
-              <div className="font-medium text-sm">Regarder une pub</div>
-              <div className="text-xs text-gray-light">+1 clé</div>
-            </button>
-            <button
-              onClick={() => earnKey('referral')}
-              className="p-3 border border-gray-800 rounded-lg hover:border-primary transition text-center"
-            >
-              <div className="text-2xl mb-2">👥</div>
-              <div className="font-medium text-sm">Inviter un ami</div>
-              <div className="text-xs text-gray-light">+3 clés</div>
-            </button>
-            <button
-              onClick={() => earnKey('share')}
-              className="p-3 border border-gray-800 rounded-lg hover:border-primary transition text-center"
-            >
-              <div className="text-2xl mb-2">🔗</div>
-              <div className="font-medium text-sm">Partager sur les réseaux</div>
-              <div className="text-xs text-gray-light">+2 clés</div>
-            </button>
-          </div>
-        </div>
-      )} */}
       
       <footer className="py-3 sm:py-4 border-t border-gray-800">
         <div className="container mx-auto px-2 sm:px-4 text-center text-xs sm:text-sm text-gray-light">
