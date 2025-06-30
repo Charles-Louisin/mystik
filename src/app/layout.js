@@ -15,6 +15,9 @@ export const metadata = {
   keywords: ["anonyme", "messagerie", "mystik", "secret", "message"],
   authors: [{ name: "Mystik" }],
   metadataBase: new URL("https://mystik-three.vercel.app"), // À remplacer par votre domaine réel
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export const viewport = {
